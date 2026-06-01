@@ -1,0 +1,16 @@
+float:f32  //ponto flutuante de precisão simples
+c:char
+double:f64 //ponto flutuante de precisão dupla
+int:i32 ou i64
+
+fun add(a: i32, b: i32 ): i32 {
+	return a + b;
+}
+
+fun main(): void{
+	var a, b: i32 = 3;
+    var r: i32 = add(a,b);
+    print(r);
+    print(add(10,2));
+
+}
