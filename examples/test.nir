@@ -1,0 +1,10 @@
+fun add(a: i32, b: i32 ): i32 {
+	return a + b;
+}
+
+fun main(): void {
+	var a, b: i32 = 3; //comentario
+  var r: i32 = add(a,b); #comentario
+  print(r);
+  print(add(10,2));
+}
