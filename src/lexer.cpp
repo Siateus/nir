@@ -8,7 +8,7 @@
 
 using namespace std;
 
-unordered_map<string, string> TOKENS = {
+const unordered_map<string, string> Lexer::TOKENS = {
     {"return", "RETURN"},
     {"fun", "FUN"},
     {"if", "IF"},
@@ -53,14 +53,55 @@ unordered_map<string, string> TOKENS = {
     {"=", "ASSIGN"}
 };
 
-vector<Token> lexer(fstream &arquivo) {
-    vector<Token> tokens;
-
+std::string Lexer::ler_limpar_arquivo(std::fstream &arquivo) {
     string src;
     string linha;
-    while(getline(arquivo,linha)){
-        src += linha+"\n";
+    bool em_comentario_bloco = false;
+    while(getline(arquivo, linha)){
+        if (em_comentario_bloco) {
+            size_t fim = linha.find("*/");
+            if (fim != string::npos) {
+                linha = linha.substr(fim + 2);
+                em_comentario_bloco = false;
+            } else {
+                continue;
+            }
+        }
+
+        size_t inicio_bloco = linha.find("/*");
+        if (inicio_bloco != string::npos) {
+            size_t fim_bloco = linha.find("*/", inicio_bloco + 2);
+            if (fim_bloco != string::npos) {
+                linha = linha.substr(0, inicio_bloco) + linha.substr(fim_bloco + 2);
+            } else {
+                linha = linha.substr(0, inicio_bloco);
+                em_comentario_bloco = true;
+            }
+        }
+
+        size_t pos_barra  = linha.find("//");
+        size_t pos_traco  = linha.find("--");
+        size_t pos_tralha = linha.find('#');
+
+        size_t pos_comentario = string::npos;
+        if (pos_barra != string::npos) pos_comentario = pos_barra;
+        if (pos_traco != string::npos && (pos_comentario == string::npos || pos_traco < pos_comentario)) pos_comentario = pos_traco;
+        if (pos_tralha != string::npos && (pos_comentario == string::npos || pos_tralha < pos_comentario)) pos_comentario = pos_tralha;
+
+        if (pos_comentario != string::npos) {
+            linha = linha.substr(0, pos_comentario);
+        }
+
+        src += linha + "\n";
     }
+    return src;
+}
+
+vector<Token> Lexer::lexer(fstream &arquivo) {
+    vector<Token> tokens;
+
+    string src = ler_limpar_arquivo(arquivo);
+
     const regex re(R"([A-Za-z_][A-Za-z0-9_]*|-?\d+\.\d+|-?\d+|==|!=|<=|>=|\|\||&&|".*?"|'.*?'|[{}():;,=+\-*/%])");
     const auto begin = sregex_iterator(src.begin(),src.end(), re);
     const auto end = sregex_iterator();
@@ -68,7 +109,7 @@ vector<Token> lexer(fstream &arquivo) {
     for(auto i = begin; i != end; ++i) {
         string lin = i->str();
         if(TOKENS.find(lin) != TOKENS.end()) {
-            tokens.push_back({TOKENS[lin],lin});
+            tokens.push_back({TOKENS.at(lin),lin});
         }
         else if(regex_match(lin,regex(R"(^-?\d+(?:[\.]\d+)?$)"))) {
             tokens.push_back({"NUMBER",lin});
@@ -77,9 +118,9 @@ vector<Token> lexer(fstream &arquivo) {
         }else if (regex_match(lin, regex(R"("[^"]*")"))) {
             tokens.push_back({"STRING",lin});
         }else {
-            tokens.push_back({"NAME",lin});
+            tokens.push_back({"ID",lin});
         }
     }
-
+    tokens.push_back({"EOF_TOKEN", "EOF"});
     return tokens;
 }

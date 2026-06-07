@@ -21,8 +21,8 @@ int main (int argc, char *argv[]) {
     }
 
     cout << "Nome do Arquivo " << argv[1] << endl;
-
-    vector<Token> tokens = lexer(arquivo);
+    const vector<Token> tokens = Lexer::lexer(arquivo);
+    arquivo.close();
 
     for(auto &t: tokens) {
         cout << "(" << t.type << ", " << t.value << " )" << endl;
