@@ -7,4 +7,5 @@ fun main(): void {
   var r: i32 = add(a,b); #comentario
   print(r);
   print(add(10,2));
+  var c:i32 = -5;
 }
