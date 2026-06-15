@@ -9,6 +9,8 @@
 struct Token {
     std::string type;
     std::string value;
+    int line;
+    int col;
 };
 class Lexer {
 private:

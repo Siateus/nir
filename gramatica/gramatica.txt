@@ -1,48 +1,56 @@
-PROG -> TOPLEVEL PROG | ε
-TOPLEVEL -> FUNCDCL | IMPORTDCL | GLOBALDCL
-FUNCDCL -> 'fun' 'NAME' '(' PARAMLIST ')' ':' TIPO BLOCO
+Prog -> ListaGlobal EOF
 
-PARAMLIST -> PARAM MOREPARAMS | ε
-MOREPARAMS -> ',' PARAM MOREPARAMS | ε
-PARAM -> 'NAME' ':' TIPO
+ListaGlobal -> NivelGlobal ListaGlobal | ε
+NivelGlobal -> DeclaraFuncao | DeclaraImport | DeclaraGlobal
 
-BLOCO -> '{' STMTLIST '}'
+DeclaraImport -> 'import' 'id' ';'
+DeclaraGlobal -> DeclaraVariavel
+DeclaraFuncao -> 'fun' 'id' '(' ListaParametros ')' ':' Tipo Bloco
 
-STMTLIST -> STMT STMTLIST | ε
-STMT -> STMT_SIMPLES | STMT_COMPOSTOS
-STMT_SIMPLES -> VARDCL | RETURNSTMT | PRINTSTMT | ATRIBUICAO 
-STMT_COMPOSTOS -> WHILESTMT | IFSTMT | DOWHILESTMT | FORSTMT
+ListaParametros -> Parametro CaudaParametros | ε
+CaudaParametros -> ',' Parametro CaudaParametros | ε
+Parametro -> 'id' ':' Tipo
 
-VARDCL -> 'var' 'NAME' ':' TIPO INICIA ';'
-INICIA -> '=' EXPR | ε
+Bloco -> '{' ListaComandos '}'
+ListaComandos -> Comando ListaComandos | ε
+Comando -> ComandoSimples | ComandoComposto
 
-ATRIBUICAO -> 'NAME' '=' EXPR ';'
+ComandoSimples -> DeclaraVariavel | ComandoRetorno | ComandoPrint | 'id' CaudaComandoId
+CaudaComandoId -> '=' ExpressaoAritmetica ';' | '(' ListaArgumentos ')' ';'
 
-CONDICAO -> ORCOND
-ORCOND -> ANDCOND ORCOND_TAIL
-ORCOND_TAIL -> '||' ANDCOND ORCOND_TAIL | ε
-ANDCOND -> NOTCOND ANDCOND_TAIL
-ANDCOND_TAIL -> '&&' NOTCOND ANDCOND_TAIL | ε
-NOTCOND -> '!' NOTCOND | EXPR
+ComandoComposto -> ComandoWhile | ComandoIf | ComandoDoWhile | ComandoFor
 
-EXPR ->  TERMO EXPRS
-EXPRS -> '+' TERMO EXPRS | '-' TERMO EXPRS | ε
-TERMO -> FATOR TERMOS
-TERMOS -> '*' FATOR TERMOS | '/' FATOR TERMOS | '%' FATOR TERMOS | ε
-FATOR -> '(' EXPR ')' | 'NAME' | 'NAME' '(' ARGLIST ')' |'NUMBER'
-ARGLIST -> EXPR MOREARGS | ε
-MOREARGS -> ',' EXPR MOREARGS | ε
+DeclaraVariavel -> 'var' 'id' ':' Tipo Inicializacao ';'
+Inicializacao -> '=' ExpressaoAritmetica | ε
+ComandoRetorno -> 'return' ExpressaoAritmetica ';'
+ComandoPrint -> 'print' '(' ExpressaoAritmetica ')' ';'
+Tipo -> 'i32' | 'i64' | 'f32' | 'f64' | 'char' | 'void' | 'string'
 
-RETURNSTMT -> 'return' EXPR ';'
+Condicao -> ExpressaoOu
+ExpressaoOu -> ExpressaoE CaudaExpressaoOu
+CaudaExpressaoOu -> '||' ExpressaoE CaudaExpressaoOu | ε
+ExpressaoE -> ExpLogicaUnaria CaudaExpressaoE
+CaudaExpressaoE -> '&&' ExpLogicaUnaria CaudaExpressaoE | ε
+ExpLogicaUnaria -> '!' ExpLogicaUnaria | '(' Condicao ')' | ExpressaoRelacional
 
-TIPO -> 'i32' | 'i64' | 'f32' | 'f64' | 'char'| 'void'
+ExpressaoRelacional -> ExpressaoAritmetica CaudaRelacional
+CaudaRelacional -> '==' ExpressaoAritmetica | '!=' ExpressaoAritmetica 
+                   | '>' ExpressaoAritmetica | '<' ExpressaoAritmetica 
+                   | '>=' ExpressaoAritmetica | '<=' ExpressaoAritmetica | ε
 
-IFSTMT -> 'if' '(' CONDICAO ')' BLOCO ELSESTMT
-ELSESTMT -> 'else' BLOCO | 'else' IFSTMT | ε
-WHILESTMT -> 'while' '(' CONDICAO ')' BLOCO
-DOWHILESTMT -> 'do' BLOCO 'while' '(' CONDICAO ')' ';'
-IMPORTDCL -> 'import' 'NAME' ';'
-GLOBALDCL -> VARDCL
-PRINTSTMT -> 'print' '(' EXPR ')' ';'
-FORSTMT -> 'for' '(' VARDCL CONDICAO ')' BLOCO
+ExpressaoAritmetica -> Termo CaudaExpressaoAritmetica
+CaudaExpressaoAritmetica -> '+' Termo CaudaExpressaoAritmetica | '-' Termo CaudaExpressaoAritmetica | ε
+Termo -> Fator CaudaTermo
+CaudaTermo -> '*' Fator CaudaTermo | '/' Fator CaudaTermo | '%' Fator CaudaTermo | ε
+Fator -> 'id' CaudaFator | 'NUMBER' | 'CHAR' | 'STRING'
+CaudaFator -> '(' ListaArgumentos ')' | ε
+ListaArgumentos -> ExpressaoAritmetica CaudaArgumentos | ε
+CaudaArgumentos -> ',' ExpressaoAritmetica CaudaArgumentos | ε
 
+ComandoIf -> 'if' '(' Condicao ')' Bloco ComandoElse
+ComandoElse -> 'else' CaudaElse | ε
+CaudaElse -> Bloco | ComandoIf
+
+ComandoWhile -> 'while' '(' Condicao ')' Bloco
+ComandoDoWhile -> 'do' Bloco 'while' '(' Condicao ')' ';'
+ComandoFor -> 'for' '(' DeclaraVariavel Condicao ')' Bloco

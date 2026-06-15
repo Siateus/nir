@@ -1,0 +1,33 @@
+Nome do Arquivo examples/add.nir
+-> PROG
+  -> FUN_DECL (add)
+    -> TYPE (i32)
+    -> PARAM (a)
+      -> TYPE (i32)
+    -> PARAM (b)
+      -> TYPE (i32)
+    -> BLOCK
+      -> RETURN
+        -> BIN_OP (+)
+          -> ID (a)
+          -> ID (b)
+  -> FUN_DECL (main)
+    -> TYPE (void)
+    -> BLOCK
+      -> VAR_DECL (a)
+        -> TYPE (i32)
+        -> NUMBER (3)
+      -> VAR_DECL (b)
+        -> TYPE (i32)
+        -> NUMBER (3)
+      -> VAR_DECL (r)
+        -> TYPE (i32)
+        -> CALL (add)
+          -> ID (a)
+          -> ID (b)
+      -> PRINT
+        -> ID (r)
+      -> PRINT
+        -> CALL (add)
+          -> NUMBER (10)
+          -> NUMBER (2)

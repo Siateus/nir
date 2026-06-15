@@ -1,0 +1,8 @@
+fun main(): void {
+  var a: i32 = 1 + 2 * 3 - 4 / 2 % 3;
+  var b: i32 = (1 + 2) * (3 - 4) / 2;
+  var c: i32 = -5 + 10 * -2;
+  print(a);
+  print(b);
+  print(c);
+}

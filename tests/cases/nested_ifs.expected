@@ -1,0 +1,35 @@
+Nome do Arquivo examples/nested_ifs.nir
+-> PROG
+  -> FUN_DECL (check_number)
+    -> TYPE (void)
+    -> PARAM (n)
+      -> TYPE (i32)
+    -> BLOCK
+      -> IF
+        -> BIN_OP (<)
+          -> ID (n)
+          -> NUMBER (0)
+        -> BLOCK
+          -> PRINT
+            -> UN_OP (-)
+              -> NUMBER (1)
+        -> IF
+          -> BIN_OP (==)
+            -> ID (n)
+            -> NUMBER (0)
+          -> BLOCK
+            -> PRINT
+              -> NUMBER (0)
+          -> BLOCK
+            -> PRINT
+              -> NUMBER (1)
+  -> FUN_DECL (main)
+    -> TYPE (void)
+    -> BLOCK
+      -> CALL (check_number)
+        -> UN_OP (-)
+          -> NUMBER (5)
+      -> CALL (check_number)
+        -> NUMBER (0)
+      -> CALL (check_number)
+        -> NUMBER (10)

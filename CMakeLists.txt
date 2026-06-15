@@ -17,3 +17,7 @@ add_executable(nir
         src/parser.cpp
         src/sematic.cpp
         main.cpp)
+
+enable_testing()
+add_test(NAME regression_tests COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_tests.py)
+

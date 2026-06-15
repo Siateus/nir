@@ -1,0 +1,10 @@
+Nome do Arquivo examples/error.nir
+-> PROG
+  -> FUN_DECL (main)
+    -> TYPE (void)
+    -> BLOCK
+      -> VAR_DECL (a)
+        -> TYPE (i32)
+        -> BIN_OP (+)
+          -> NUMBER (5)
+          -> NUMBER (3)

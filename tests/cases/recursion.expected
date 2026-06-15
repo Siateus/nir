@@ -1,0 +1,31 @@
+Nome do Arquivo examples/recursion.nir
+-> PROG
+  -> FUN_DECL (fib)
+    -> TYPE (i32)
+    -> PARAM (n)
+      -> TYPE (i32)
+    -> BLOCK
+      -> IF
+        -> BIN_OP (<=)
+          -> ID (n)
+          -> NUMBER (1)
+        -> BLOCK
+          -> RETURN
+            -> ID (n)
+        -> EMPTY
+      -> RETURN
+        -> BIN_OP (+)
+          -> CALL (fib)
+            -> BIN_OP (-)
+              -> ID (n)
+              -> NUMBER (1)
+          -> CALL (fib)
+            -> BIN_OP (-)
+              -> ID (n)
+              -> NUMBER (2)
+  -> FUN_DECL (main)
+    -> TYPE (void)
+    -> BLOCK
+      -> PRINT
+        -> CALL (fib)
+          -> NUMBER (6)

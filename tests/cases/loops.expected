@@ -1,0 +1,51 @@
+Nome do Arquivo examples/loops.nir
+-> PROG
+  -> FUN_DECL (test_loops)
+    -> TYPE (void)
+    -> BLOCK
+      -> VAR_DECL (i)
+        -> TYPE (i32)
+        -> NUMBER (0)
+      -> WHILE
+        -> BIN_OP (<)
+          -> ID (i)
+          -> NUMBER (5)
+        -> BLOCK
+          -> PRINT
+            -> ID (i)
+          -> ASSIGN
+            -> ID (i)
+            -> BIN_OP (+)
+              -> ID (i)
+              -> NUMBER (1)
+      -> DO_WHILE
+        -> BLOCK
+          -> PRINT
+            -> ID (i)
+          -> ASSIGN
+            -> ID (i)
+            -> BIN_OP (-)
+              -> ID (i)
+              -> NUMBER (1)
+        -> BIN_OP (>)
+          -> ID (i)
+          -> NUMBER (0)
+      -> FOR
+        -> VAR_DECL (j)
+          -> TYPE (i32)
+          -> NUMBER (0)
+        -> BIN_OP (<)
+          -> ID (j)
+          -> NUMBER (3)
+        -> BLOCK
+          -> PRINT
+            -> ID (j)
+          -> ASSIGN
+            -> ID (j)
+            -> BIN_OP (+)
+              -> ID (j)
+              -> NUMBER (1)
+  -> FUN_DECL (main)
+    -> TYPE (void)
+    -> BLOCK
+      -> CALL (test_loops)

@@ -6,11 +6,14 @@
 Parser::Parser(const std::vector<Token> &tokens_lexer)
     : tokens(tokens_lexer), atual(0) {}
 
-void Parser::parser() {
+// Altere a assinatura no parser.hpp para retornar ASTNode* se quiser capturar
+// na main
+ASTNode *Parser::parser() {
   try {
-    parse_Prog();
+    return parse_Prog();
   } catch (const std::runtime_error &e) {
     std::cerr << "Falha na analise sintatica: " << e.what() << std::endl;
+    return nullptr;
   }
 }
 
@@ -27,240 +30,371 @@ void Parser::match(const std::string &tipo) {
   if (peek().type == tipo) {
     advance();
   } else {
-    throw std::runtime_error("Syntax error: expected '" + tipo +
-                             "', but find '" + peek().value + "'");
+    erro("'" + tipo + "'");
   }
+}
+
+void Parser::erro(const std::string &esperado) {
+  Token t = peek();
+  std::string encontrado =
+      (t.type == "EOF") ? "fim de arquivo (EOF)" : "'" + t.value + "'";
+  throw std::runtime_error("Erro de sintaxe na linha " +
+                           std::to_string(t.line) + ", coluna " +
+                           std::to_string(t.col) + ": esperado " + esperado +
+                           ", mas encontrou " + encontrado);
 }
 
 bool Parser::is_eof() { return peek().type == "EOF"; }
 
-void Parser::parse_Prog() {
+// Prog -> ListaGlobal EOF
+ASTNode *Parser::parse_Prog() {
   if (peek().type == "IMPORT" || peek().type == "VAR" || peek().type == "FUN" ||
       peek().type == "EOF") {
-    parse_ListaGlobal();
+    ASTNode *listaGlobal = parse_ListaGlobal();
     match("EOF");
+
+    ASTNode *progNode = new ASTNode(NodeType::PROG);
+    if (listaGlobal)
+      progNode->adopt(listaGlobal);
+    return progNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: fun, import, var, EOF");
+    erro("fun, import, var ou EOF");
+    return nullptr;
   }
 }
 
-void Parser::parse_ListaGlobal() {
+// ListaGlobal -> NivelGlobal ListaGlobal | ε
+ASTNode *Parser::parse_ListaGlobal() {
   if (peek().type == "IMPORT" || peek().type == "VAR" || peek().type == "FUN") {
-    parse_NivelGlobal();
-    parse_ListaGlobal();
+    ASTNode *nivel = parse_NivelGlobal();
+    ASTNode *cauda = parse_ListaGlobal();
+
+    if (nivel && cauda) {
+      nivel->make_siblings(cauda);
+    }
+    return nivel ? nivel : cauda;
   } else if (peek().type == "EOF") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: fun, import, var, EOF");
+    erro("fun, import, var ou EOF");
+    return nullptr;
   }
 }
 
-void Parser::parse_NivelGlobal() {
+// NivelGlobal -> DeclaraFuncao | DeclaraImport | DeclaraGlobal
+ASTNode *Parser::parse_NivelGlobal() {
   if (peek().type == "IMPORT") {
-    parse_DeclaraImport();
+    return parse_DeclaraImport();
   } else if (peek().type == "FUN") {
-    parse_DeclaraFuncao();
+    return parse_DeclaraFuncao();
   } else if (peek().type == "VAR") {
-    parse_DeclaraGlobal();
+    return parse_DeclaraGlobal();
   } else {
-    throw std::runtime_error("Syntax error, expected: fun, import, var");
+    erro("fun, import ou var");
+    return nullptr;
   }
 }
 
-void Parser::parse_DeclaraImport() {
+// DeclaraImport -> 'import' 'id' ';'
+ASTNode *Parser::parse_DeclaraImport() {
   if (peek().type == "IMPORT") {
     match("IMPORT");
+    std::string modulo = peek().value;
     match("ID");
     match("SEMICOLON");
+
+    return new ASTNode(NodeType::IMPORT, modulo);
   } else {
-    throw std::runtime_error("Syntax error, expected: import, id, ';'");
+    erro("import, identificador ou ';'");
+    return nullptr;
   }
 }
 
-void Parser::parse_DeclaraGlobal() {
+// DeclaraGlobal -> DeclaraVariavel
+ASTNode *Parser::parse_DeclaraGlobal() {
   if (peek().type == "VAR") {
-    parse_DeclaraVariavel();
+    return parse_DeclaraVariavel();
   } else {
-    throw std::runtime_error("Syntax error, expected: var");
+    erro("'var'");
+    return nullptr;
   }
 }
 
-void Parser::parse_DeclaraFuncao() {
+// DeclaraFuncao -> 'fun' 'id' '(' ListaParametros ')' ':' Tipo Bloco
+ASTNode *Parser::parse_DeclaraFuncao() {
   if (peek().type == "FUN") {
     match("FUN");
+    std::string nome_funcao = peek().value;
     match("ID");
     match("LPAREN");
-    parse_ListaParametros();
+    ASTNode *params = parse_ListaParametros();
     match("RPAREN");
     match("COLON");
-    parse_Tipo();
-    parse_Bloco();
+    ASTNode *tipoRetorno = parse_Tipo();
+    ASTNode *bloco = parse_Bloco();
+
+    ASTNode *funNode = new ASTNode(NodeType::FUN_DECL, nome_funcao);
+    if (tipoRetorno)
+      funNode->adopt(tipoRetorno);
+    if (params)
+      funNode->adopt(params);
+    if (bloco)
+      funNode->adopt(bloco);
+    return funNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: fun");
+    erro("'fun'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ListaParametros() {
+// ListaParametros -> Parametro CaudaParametros | ε
+ASTNode *Parser::parse_ListaParametros() {
   if (peek().type == "ID") {
-    parse_Parametro();
-    parse_CaudaParametros();
+    ASTNode *param = parse_Parametro();
+    ASTNode *cauda = parse_CaudaParametros();
+
+    if (param && cauda) {
+      param->make_siblings(cauda);
+    }
+    return param ? param : cauda;
   } else if (peek().type == "RPAREN") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: id, ')'");
+    erro("identificador ou ')'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaParametros() {
+// CaudaParametros -> ',' Parametro CaudaParametros | ε
+ASTNode *Parser::parse_CaudaParametros() {
   if (peek().type == "COMMA") {
     match("COMMA");
-    parse_Parametro();
-    parse_CaudaParametros();
+    ASTNode *param = parse_Parametro();
+    ASTNode *cauda = parse_CaudaParametros();
+
+    if (param && cauda) {
+      param->make_siblings(cauda);
+    }
+    return param ? param : cauda;
   } else if (peek().type == "RPAREN") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: ',', ')'");
+    erro("',' ou ')'");
+    return nullptr;
   }
 }
 
-void Parser::parse_Parametro() {
+// Parametro -> 'id' ':' Tipo
+ASTNode *Parser::parse_Parametro() {
   if (peek().type == "ID") {
+    std::string nome_param = peek().value;
     match("ID");
     match("COLON");
-    parse_Tipo();
+    ASTNode *tipo = parse_Tipo();
+
+    ASTNode *paramNode = new ASTNode(NodeType::PARAM, nome_param);
+    if (tipo)
+      paramNode->adopt(tipo);
+    return paramNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: id");
+    erro("identificador");
+    return nullptr;
   }
 }
 
-void Parser::parse_Bloco() {
+// Bloco -> '{' ListaComandos '}'
+ASTNode *Parser::parse_Bloco() {
   if (peek().type == "LBRACE") {
     match("LBRACE");
-    parse_ListaComandos();
+    ASTNode *comandos = parse_ListaComandos();
     match("RBRACE");
+
+    ASTNode *blocoNode = new ASTNode(NodeType::BLOCK);
+    if (comandos)
+      blocoNode->adopt(comandos);
+    return blocoNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: '{'");
+    erro("'{'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ListaComandos() {
+// ListaComandos -> Comando ListaComandos | ε
+ASTNode *Parser::parse_ListaComandos() {
   if (peek().type == "ID" || peek().type == "VAR" || peek().type == "RETURN" ||
       peek().type == "PRINT" || peek().type == "WHILE" || peek().type == "IF" ||
       peek().type == "DO" || peek().type == "FOR") {
-    parse_Comando();
-    parse_ListaComandos();
+
+    ASTNode *cmd = parse_Comando();
+    ASTNode *cauda = parse_ListaComandos();
+
+    if (cmd && cauda) {
+      cmd->make_siblings(cauda);
+    }
+    return cmd ? cmd : cauda;
   } else if (peek().type == "RBRACE") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error(
-        "Syntax error, expected: id, var, return, print, while, if, for, do");
+    erro("identificador, 'var', 'return', 'print', 'while', 'if', 'for' ou "
+         "'do'");
+    return nullptr;
   }
 }
 
-void Parser::parse_Comando() {
+// Comando -> ComandoSimples | ComandoComposto
+ASTNode *Parser::parse_Comando() {
   if (peek().type == "ID" || peek().type == "VAR" || peek().type == "RETURN" ||
       peek().type == "PRINT") {
-    parse_ComandoSimples();
+    return parse_ComandoSimples();
   } else if (peek().type == "WHILE" || peek().type == "IF" ||
              peek().type == "DO" || peek().type == "FOR") {
-    parse_ComandoComposto();
+    return parse_ComandoComposto();
   } else {
-    throw std::runtime_error(
-        "Syntax error, expected: id, var, return, print, while, if, for, do");
+    erro("identificador, 'var', 'return', 'print', 'while', 'if', 'for' ou "
+         "'do'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoSimples() {
+// ComandoSimples -> DeclaraVariavel | ComandoRetorno | ComandoPrint | 'id'
+// CaudaComandoId
+ASTNode *Parser::parse_ComandoSimples() {
   if (peek().type == "VAR") {
-    parse_DeclaraVariavel();
+    return parse_DeclaraVariavel();
   } else if (peek().type == "RETURN") {
-    parse_ComandoRetorno();
-  } else if (peek().type == "ID") {
-    match("ID");
-    parse_CaudaComandoId();
+    return parse_ComandoRetorno();
   } else if (peek().type == "PRINT") {
-    parse_ComandoPrint();
+    return parse_ComandoPrint();
+  } else if (peek().type == "ID") {
+    std::string nome_id = peek().value;
+    match("ID");
+    return parse_CaudaComandoId(
+        nome_id); // Passa o lexema do identificador adiante
   } else {
-    throw std::runtime_error("Syntax error, expected: id, var, print, return");
+    erro("identificador, 'var', 'print' ou 'return'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaComandoId() {
+// CaudaComandoId -> '=' ExpressaoAritmetica ';' | '(' ListaArgumentos ')' ';'
+ASTNode *Parser::parse_CaudaComandoId(const std::string &nome_id) {
   if (peek().type == "ASSIGN") {
     match("ASSIGN");
-    parse_ExpressaoAritmetica();
+    ASTNode *expr = parse_ExpressaoAritmetica();
     match("SEMICOLON");
+
+    ASTNode *assignNode = new ASTNode(NodeType::ASSIGN);
+    assignNode->adopt(new ASTNode(NodeType::ID, nome_id));
+    if (expr)
+      assignNode->adopt(expr);
+    return assignNode;
   } else if (peek().type == "LPAREN") {
     match("LPAREN");
-    parse_ListaArgumentos();
+    ASTNode *args = parse_ListaArgumentos();
     match("RPAREN");
     match("SEMICOLON");
+
+    ASTNode *callNode = new ASTNode(NodeType::CALL, nome_id);
+    if (args)
+      callNode->adopt(args);
+    return callNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: =, '('");
+    erro("'=' ou '('");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoComposto() {
+// ComandoComposto -> ComandoWhile | ComandoIf | ComandoDoWhile | ComandoFor
+ASTNode *Parser::parse_ComandoComposto() {
   if (peek().type == "WHILE") {
-    parse_ComandoWhile();
+    return parse_ComandoWhile();
   } else if (peek().type == "FOR") {
-    parse_ComandoFor();
+    return parse_ComandoFor();
   } else if (peek().type == "DO") {
-    parse_ComandoDoWhile();
+    return parse_ComandoDoWhile();
   } else if (peek().type == "IF") {
-    parse_ComandoIf();
+    return parse_ComandoIf();
   } else {
-    throw std::runtime_error("Syntax error, expected: while, do, for, if");
+    erro("'while', 'do', 'for' ou 'if'");
+    return nullptr;
   }
 }
 
-void Parser::parse_DeclaraVariavel() {
+// DeclaraVariavel -> 'var' 'id' ':' Tipo Inicializacao ';'
+ASTNode *Parser::parse_DeclaraVariavel() {
   if (peek().type == "VAR") {
     match("VAR");
+    std::string nome_var = peek().value;
     match("ID");
     match("COLON");
-    parse_Tipo();
-    parse_Inicializacao();
+    ASTNode *tipo = parse_Tipo();
+    ASTNode *init = parse_Inicializacao();
     match("SEMICOLON");
+
+    ASTNode *varNode = new ASTNode(NodeType::VAR_DECL, nome_var);
+    if (tipo)
+      varNode->adopt(tipo);
+    if (init)
+      varNode->adopt(init);
+    return varNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: var");
+    erro("'var'");
+    return nullptr;
   }
 }
 
-void Parser::parse_Inicializacao() {
+// Inicializacao -> '=' ExpressaoAritmetica | ε
+ASTNode *Parser::parse_Inicializacao() {
   if (peek().type == "ASSIGN") {
     match("ASSIGN");
-    parse_ExpressaoAritmetica();
+    return parse_ExpressaoAritmetica();
   } else if (peek().type == "SEMICOLON") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: =, ';'");
+    erro("'=' ou ';'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoRetorno() {
+// ComandoRetorno -> 'return' ExpressaoAritmetica ';'
+ASTNode *Parser::parse_ComandoRetorno() {
   if (peek().type == "RETURN") {
     match("RETURN");
-    parse_ExpressaoAritmetica();
+    ASTNode *expr = parse_ExpressaoAritmetica();
     match("SEMICOLON");
+
+    ASTNode *retNode = new ASTNode(NodeType::RETURN);
+    if (expr)
+      retNode->adopt(expr);
+    return retNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: return");
+    erro("'return'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoPrint() {
+// ComandoPrint -> 'print' '(' ExpressaoAritmetica ')' ';'
+ASTNode *Parser::parse_ComandoPrint() {
   if (peek().type == "PRINT") {
     match("PRINT");
     match("LPAREN");
-    parse_ExpressaoAritmetica();
+    ASTNode *expr = parse_ExpressaoAritmetica();
     match("RPAREN");
     match("SEMICOLON");
+
+    ASTNode *printNode = new ASTNode(NodeType::PRINT);
+    if (expr)
+      printNode->adopt(expr);
+    return printNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: print");
+    erro("'print'");
+    return nullptr;
   }
 }
 
-void Parser::parse_Tipo() {
+// Tipo -> 'i32' | 'i64' | 'f32' | 'f64' | 'char' | 'void' | 'string'
+ASTNode *Parser::parse_Tipo() {
+  std::string rotulo_tipo = peek().value;
   if (peek().type == "TYPE_I32") {
     match("TYPE_I32");
   } else if (peek().type == "TYPE_I64") {
@@ -273,169 +407,219 @@ void Parser::parse_Tipo() {
     match("TYPE_CHAR");
   } else if (peek().type == "TYPE_VOID") {
     match("TYPE_VOID");
+  } else if (peek().type == "TYPE_STRING") {
+    match("TYPE_STRING");
   } else {
-    throw std::runtime_error(
-        "Syntax error, expected: i32, i64, f32, f64, void, char");
+    erro("um tipo (como 'i32', 'i64', 'f32', 'f64', 'string', 'void' ou "
+         "'char')");
+    return nullptr;
   }
+  return new ASTNode(NodeType::TYPE, rotulo_tipo);
 }
 
-void Parser::parse_Condicao() {
+// Condicao -> ExpressaoOu
+ASTNode *Parser::parse_Condicao() {
   if (peek().type == "NOT" || peek().type == "LPAREN" || peek().type == "ID" ||
-      peek().type == "NUMBER") {
-    parse_ExpressaoOu();
+      peek().type == "NUMBER" || peek().type == "CHAR" || peek().type == "STRING" ||
+      peek().type == "MINUS") {
+    return parse_ExpressaoOu();
   } else {
-    throw std::runtime_error("Syntax error, expected: '!', '(', id, number");
+    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ExpressaoOu() {
+// ExpressaoOu -> ExpressaoE CaudaExpressaoOu
+ASTNode *Parser::parse_ExpressaoOu() {
   if (peek().type == "NOT" || peek().type == "LPAREN" || peek().type == "ID" ||
-      peek().type == "NUMBER") {
-    parse_ExpressaoE();
-    parse_CaudaExpressaoOu();
+      peek().type == "NUMBER" || peek().type == "CHAR" || peek().type == "STRING" ||
+      peek().type == "MINUS") {
+    ASTNode *esq = parse_ExpressaoE();
+    return parse_CaudaExpressaoOu(esq);
   } else {
-    throw std::runtime_error("Syntax error, expected: '!', '(', id, number");
+    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaExpressaoOu() {
+// CaudaExpressaoOu -> '||' ExpressaoE CaudaExpressaoOu | ε
+ASTNode *Parser::parse_CaudaExpressaoOu(ASTNode *esq) {
   if (peek().type == "OR") {
     match("OR");
-    parse_ExpressaoE();
-    parse_CaudaExpressaoOu();
+    ASTNode *dir = parse_ExpressaoE();
+
+    ASTNode *opNode = new ASTNode(NodeType::BIN_OP, "||");
+    opNode->adopt(esq);
+    if (dir)
+      opNode->adopt(dir);
+
+    return parse_CaudaExpressaoOu(opNode);
   } else if (peek().type == "RPAREN") {
-    return;
+    return esq; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: '||', ')'");
+    erro("'||' ou ')'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ExpressaoE() {
+// ExpressaoE -> ExpLogicaUnaria CaudaExpressaoE
+ASTNode *Parser::parse_ExpressaoE() {
   if (peek().type == "NOT" || peek().type == "LPAREN" || peek().type == "ID" ||
-      peek().type == "NUMBER") {
-    parse_ExpLogicaUnaria();
-    parse_CaudaExpressaoE();
+      peek().type == "NUMBER" || peek().type == "CHAR" || peek().type == "STRING" ||
+      peek().type == "MINUS") {
+    ASTNode *esq = parse_ExpLogicaUnaria();
+    return parse_CaudaExpressaoE(esq);
   } else {
-    throw std::runtime_error("Syntax error, expected: '!', '(', id, number");
+    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaExpressaoE() {
+// CaudaExpressaoE -> '&&' ExpLogicaUnaria CaudaExpressaoE | ε
+ASTNode *Parser::parse_CaudaExpressaoE(ASTNode *esq) {
   if (peek().type == "AND") {
     match("AND");
-    parse_ExpLogicaUnaria();
-    parse_CaudaExpressaoE();
+    ASTNode *dir = parse_ExpLogicaUnaria();
+
+    ASTNode *opNode = new ASTNode(NodeType::BIN_OP, "&&");
+    opNode->adopt(esq);
+    if (dir)
+      opNode->adopt(dir);
+
+    return parse_CaudaExpressaoE(opNode);
   } else if (peek().type == "RPAREN" || peek().type == "OR") {
-    return;
+    return esq; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: '&&', ')', '||'");
+    erro("'&&', ')' ou '||'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ExpLogicaUnaria() {
+// ExpLogicaUnaria -> '!' ExpLogicaUnaria | '(' Condicao ')' |
+// ExpressaoRelacional
+ASTNode *Parser::parse_ExpLogicaUnaria() {
   if (peek().type == "NOT") {
     match("NOT");
-    parse_ExpLogicaUnaria();
+    ASTNode *operando = parse_ExpLogicaUnaria();
+
+    ASTNode *unNode = new ASTNode(NodeType::UN_OP, "!");
+    if (operando)
+      unNode->adopt(operando);
+    return unNode;
   } else if (peek().type == "LPAREN") {
     match("LPAREN");
-    parse_Condicao();
+    ASTNode *cond = parse_Condicao();
     match("RPAREN");
-  } else if (peek().type == "ID" || peek().type == "NUMBER") {
-    parse_ExpressaoRelacional();
+    return cond;
+  } else if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
+             peek().type == "STRING" || peek().type == "MINUS") {
+    return parse_ExpressaoRelacional();
   } else {
-    throw std::runtime_error("Syntax error, expected: '!', '(', id, number");
+    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ExpressaoRelacional() {
-  if (peek().type == "ID" || peek().type == "NUMBER") {
-    parse_ExpressaoAritmetica();
-    parse_CaudaRelacional();
+// ExpressaoRelacional -> ExpressaoAritmetica CaudaRelacional
+ASTNode *Parser::parse_ExpressaoRelacional() {
+  if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
+    ASTNode *esq = parse_ExpressaoAritmetica();
+    return parse_CaudaRelacional(esq);
   } else {
-    throw std::runtime_error("Syntax error, expected: id, number");
+    erro("identificador, número, caractere, string ou '-'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaRelacional() {
-  if (peek().type == "EQ") {
-    match("EQ");
-    parse_ExpressaoAritmetica();
-  } else if (peek().type == "NEQ") {
-    match("NEQ");
-    parse_ExpressaoAritmetica();
-  } else if (peek().type == "GT") {
-    match("GT");
-    parse_ExpressaoAritmetica();
-  } else if (peek().type == "LT") {
-    match("LT");
-    parse_ExpressaoAritmetica();
-  } else if (peek().type == "GE") {
-    match("GE");
-    parse_ExpressaoAritmetica();
-  } else if (peek().type == "LE") {
-    match("LE");
-    parse_ExpressaoAritmetica();
+// CaudaRelacional -> '==' ExpressaoAritmetica | '!=' ExpressaoAritmetica | ...
+// | ε
+ASTNode *Parser::parse_CaudaRelacional(ASTNode *esq) {
+  if (peek().type == "EQ" || peek().type == "NEQ" || peek().type == "GT" ||
+      peek().type == "LT" || peek().type == "GE" || peek().type == "LE") {
+
+    std::string op = peek().value;
+    advance(); // Consome o operador condicional relacional
+    ASTNode *dir = parse_ExpressaoAritmetica();
+
+    ASTNode *relNode = new ASTNode(NodeType::BIN_OP, op);
+    relNode->adopt(esq);
+    if (dir)
+      relNode->adopt(dir);
+    return relNode;
   } else if (peek().type == "RPAREN" || peek().type == "AND" ||
              peek().type == "OR") {
-    return;
+    return esq; // ε
   } else {
-    throw std::runtime_error(
-        "Syntax error, expected: ==, !=, >=, <=, <, >, '(', '&&', '||'");
+    erro("'==', '!=', '>=', '<=', '<', '>', ')', '&&' ou '||'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ExpressaoAritmetica() {
-  if (peek().type == "ID" || peek().type == "NUMBER") {
-    parse_Termo();
-    parse_CaudaExpressaoAritmetica();
+// ExpressaoAritmetica -> Termo CaudaExpressaoAritmetica
+ASTNode *Parser::parse_ExpressaoAritmetica() {
+  if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
+    ASTNode *esq = parse_Termo();
+    return parse_CaudaExpressaoAritmetica(esq);
   } else {
-    throw std::runtime_error("Syntax error, expected: id, number");
+    erro("uma expressão");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaExpressaoAritmetica() {
-  if (peek().type == "PLUS") {
-    match("PLUS");
-    parse_Termo();
-    parse_CaudaExpressaoAritmetica();
-  } else if (peek().type == "MINUS") {
-    match("MINUS");
-    parse_Termo();
-    parse_CaudaExpressaoAritmetica(); // ;, ), ||, &&, ==, !=, >, <, >=, <=, ,
+// CaudaExpressaoAritmetica -> '+' Termo CaudaExpressaoAritmetica | ... | ε
+ASTNode *Parser::parse_CaudaExpressaoAritmetica(ASTNode *esq) {
+  if (peek().type == "PLUS" || peek().type == "MINUS") {
+    std::string op = peek().value;
+    advance();
+    ASTNode *dir = parse_Termo();
+
+    ASTNode *opNode = new ASTNode(NodeType::BIN_OP, op);
+    opNode->adopt(esq);
+    if (dir)
+      opNode->adopt(dir);
+
+    return parse_CaudaExpressaoAritmetica(opNode);
   } else if (peek().type == "SEMICOLON" || peek().type == "RPAREN" ||
              peek().type == "OR" || peek().type == "AND" ||
              peek().type == "EQ" || peek().type == "NEQ" ||
              peek().type == "GT" || peek().type == "LT" ||
              peek().type == "GE" || peek().type == "LE" ||
              peek().type == "COMMA") {
-    return;
-  }
-  throw std::runtime_error("Syntax error, expected: ',', ;, '||', '&&', ==, "
-                           "!=, <, >, <=, >=, ')', -, +");
-}
-
-void Parser::parse_Termo() {
-  if (peek().type == "ID" || peek().type == "NUMBER") {
-    parse_Fator();
-    parse_CaudaTermo();
+    return esq; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: id, number");
+    erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-' ou "
+         "'+'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaTermo() {
-  if (peek().type == "MULT") {
-    match("MULT");
-    parse_Fator();
-    parse_CaudaTermo();
-  } else if (peek().type == "DIV") {
-    match("DIV");
-    parse_Fator();
-    parse_CaudaTermo();
-  } else if (peek().type == "MOD") {
-    match("MOD");
-    parse_Fator();
-    parse_CaudaTermo();
+// Termo -> Fator CaudaTermo
+ASTNode *Parser::parse_Termo() {
+  if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
+    ASTNode *esq = parse_Fator();
+    return parse_CaudaTermo(esq);
+  } else {
+    erro("identificador, número, caractere, string ou '-'");
+    return nullptr;
+  }
+}
+
+// CaudaTermo -> '*' Fator CaudaTermo | ... | ε
+ASTNode *Parser::parse_CaudaTermo(ASTNode *esq) {
+  if (peek().type == "MULT" || peek().type == "DIV" || peek().type == "MOD") {
+    std::string op = peek().value;
+    advance();
+    ASTNode *dir = parse_Fator();
+
+    ASTNode *opNode = new ASTNode(NodeType::BIN_OP, op);
+    opNode->adopt(esq);
+    if (dir)
+      opNode->adopt(dir);
+
+    return parse_CaudaTermo(opNode);
   } else if (peek().type == "SEMICOLON" || peek().type == "RPAREN" ||
              peek().type == "OR" || peek().type == "AND" ||
              peek().type == "EQ" || peek().type == "NEQ" ||
@@ -443,29 +627,59 @@ void Parser::parse_CaudaTermo() {
              peek().type == "GE" || peek().type == "LE" ||
              peek().type == "COMMA" || peek().type == "PLUS" ||
              peek().type == "MINUS") {
-    return;
+    return esq; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: ',', ;, '||', '&&', ==, "
-                             "!=, <, >, <=, >=, ')', -, +, *, /, %");
+    erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-', "
+         "'+', '*', '/' ou '%'");
+    return nullptr;
   }
 }
 
-void Parser::parse_Fator() {
+// Fator -> 'id' CaudaFator | 'NUMBER' | 'CHAR' | 'STRING' | '-' Fator
+ASTNode *Parser::parse_Fator() {
   if (peek().type == "ID") {
+    std::string nome_id = peek().value;
     match("ID");
-    parse_CaudaFator();
+    ASTNode *idNode = new ASTNode(NodeType::ID, nome_id);
+    return parse_CaudaFator(idNode); // Envia o ID para saber se é chamada
   } else if (peek().type == "NUMBER") {
+    std::string val = peek().value;
     match("NUMBER");
+    return new ASTNode(NodeType::NUMBER, val);
+  } else if (peek().type == "CHAR") {
+    std::string val = peek().value;
+    match("CHAR");
+    return new ASTNode(NodeType::CHAR, val);
+  } else if (peek().type == "STRING") {
+    std::string val = peek().value;
+    match("STRING");
+    return new ASTNode(NodeType::STRING, val);
+  } else if (peek().type == "MINUS") {
+    match("MINUS");
+    ASTNode *operando = parse_Fator();
+    ASTNode *unNode = new ASTNode(NodeType::UN_OP, "-");
+    if (operando)
+      unNode->adopt(operando);
+    return unNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: id, number");
+    erro("identificador, número, caractere, string ou '-'");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaFator() {
+// CaudaFator -> '(' ListaArgumentos ')' | ε
+ASTNode *Parser::parse_CaudaFator(ASTNode *idNode) {
   if (peek().type == "LPAREN") {
     match("LPAREN");
-    parse_ListaArgumentos();
+    ASTNode *args = parse_ListaArgumentos();
     match("RPAREN");
+
+    ASTNode *callNode = new ASTNode(NodeType::CALL, idNode->value);
+    delete idNode; // Deleta o ID folha solto, pois agora virou um nó CALL
+                   // nominal
+    if (args)
+      callNode->adopt(args);
+    return callNode;
   } else if (peek().type == "SEMICOLON" || peek().type == "RPAREN" ||
              peek().type == "OR" || peek().type == "AND" ||
              peek().type == "EQ" || peek().type == "NEQ" ||
@@ -474,111 +688,164 @@ void Parser::parse_CaudaFator() {
              peek().type == "COMMA" || peek().type == "PLUS" ||
              peek().type == "MINUS" || peek().type == "MULT" ||
              peek().type == "DIV" || peek().type == "MOD") {
-    return;
+    return idNode; // ε: Não era uma chamada, retorna o ID puro
   } else {
-    throw std::runtime_error("Syntax error, expected: ',', ;, '||', '&&', ==, "
-                             "!=, <, >, <=, >=, ')', -, +, *, /, %, '('");
+    erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-', "
+         "'+', '*', '/', '%' ou '('");
+    return nullptr;
   }
 }
 
-void Parser::parse_ListaArgumentos() {
-  if (peek().type == "ID" || peek().type == "NUMBER") {
-    parse_ExpressaoAritmetica();
-    parse_CaudaArgumentos();
+// ListaArgumentos -> ExpressaoAritmetica CaudaArgumentos | ε
+ASTNode *Parser::parse_ListaArgumentos() {
+  if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
+    ASTNode *expr = parse_ExpressaoAritmetica();
+    ASTNode *cauda = parse_CaudaArgumentos();
+
+    if (expr && cauda) {
+      expr->make_siblings(cauda);
+    }
+    return expr ? expr : cauda;
   } else if (peek().type == "RPAREN") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: id, number, ')'");
+    erro("uma lista de argumentos válida");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaArgumentos() {
+// CaudaArgumentos -> ',' ExpressaoAritmetica CaudaArgumentos | ε
+ASTNode *Parser::parse_CaudaArgumentos() {
   if (peek().type == "COMMA") {
     match("COMMA");
-    parse_ExpressaoAritmetica();
-    parse_CaudaArgumentos();
+    ASTNode *expr = parse_ExpressaoAritmetica();
+    ASTNode *cauda = parse_CaudaArgumentos();
+
+    if (expr && cauda) {
+      expr->make_siblings(cauda);
+    }
+    return expr ? expr : cauda;
   } else if (peek().type == "RPAREN") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error("Syntax error, expected: id, number, ')'");
+    erro("identificador, número ou ')'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoIf() {
+// ComandoIf -> 'if' '(' Condicao ')' Bloco ComandoElse
+ASTNode *Parser::parse_ComandoIf() {
   if (peek().type == "IF") {
     match("IF");
     match("LPAREN");
-    parse_Condicao();
+    ASTNode *cond = parse_Condicao();
     match("RPAREN");
-    parse_Bloco();
-    parse_ComandoElse();
+    ASTNode *blocoThen = parse_Bloco();
+    ASTNode *blocoElse = parse_ComandoElse();
+
+    ASTNode *ifNode = new ASTNode(NodeType::IF);
+    if (cond)
+      ifNode->adopt(cond);
+    if (blocoThen)
+      ifNode->adopt(blocoThen);
+    // Garante a aridade estrutural fixa da árvore adicionando EMPTY se faltar
+    // else
+    ifNode->adopt(blocoElse ? blocoElse : new ASTNode(NodeType::EMPTY));
+    return ifNode;
   } else {
-    throw std::runtime_error("Syntax error, expected: 'if'");
+    erro("'if'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoElse() {
+// ComandoElse -> 'else' CaudaElse | ε
+ASTNode *Parser::parse_ComandoElse() {
   if (peek().type == "ELSE") {
     match("ELSE");
-    parse_CaudaElse();
+    return parse_CaudaElse();
   } else if (peek().type == "RBRACE" || peek().type == "ID" ||
              peek().type == "VAR" || peek().type == "RETURN" ||
              peek().type == "PRINT" || peek().type == "WHILE" ||
              peek().type == "IF" || peek().type == "DO" ||
              peek().type == "FOR") {
-    return;
+    return nullptr; // ε
   } else {
-    throw std::runtime_error(
-        "Syntax error after if block, expected 'else' or next command");
+    erro("'else' ou o próximo comando");
+    return nullptr;
   }
 }
 
-void Parser::parse_CaudaElse() {
+// CaudaElse -> Bloco | ComandoIf
+ASTNode *Parser::parse_CaudaElse() {
   if (peek().type == "LBRACE") {
-    parse_Bloco();
+    return parse_Bloco();
   } else if (peek().type == "IF") {
-    parse_ComandoIf();
+    return parse_ComandoIf();
   } else {
-    throw std::runtime_error("Syntax error after 'else': expected '{' for "
-                             "block scope or 'if' for statement");
+    erro("'{' para início de bloco ou 'if' para comando condicional composto");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoWhile() {
+// ComandoWhile -> 'while' '(' Condicao ')' Bloco
+ASTNode *Parser::parse_ComandoWhile() {
   if (peek().type == "WHILE") {
     match("WHILE");
     match("LPAREN");
-    parse_Condicao();
+    ASTNode *cond = parse_Condicao();
     match("RPAREN");
-    parse_Bloco();
+    ASTNode *corpo = parse_Bloco();
+
+    ASTNode *whileNode = new ASTNode(NodeType::WHILE);
+    if (cond)
+      whileNode->adopt(cond);
+    if (corpo)
+      whileNode->adopt(corpo);
+    return whileNode;
   } else {
-    throw std::runtime_error("Syntax error: expected 'while'");
+    erro("'while'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoDoWhile() {
+// ComandoDoWhile -> 'do' Bloco 'while' '(' Condicao ')' ';'
+ASTNode *Parser::parse_ComandoDoWhile() {
   if (peek().type == "DO") {
     match("DO");
-    parse_Bloco();
+    ASTNode *corpo = parse_Bloco();
     match("WHILE");
     match("LPAREN");
-    parse_Condicao();
+    ASTNode *cond = parse_Condicao();
     match("RPAREN");
     match("SEMICOLON");
+
+    ASTNode *doNode = new ASTNode(NodeType::DO_WHILE);
+    if (corpo)
+      doNode->adopt(corpo);
+    if (cond)
+      doNode->adopt(cond);
+    return doNode;
   } else {
-    throw std::runtime_error("Syntax error: expected 'do'");
+    erro("'do'");
+    return nullptr;
   }
 }
 
-void Parser::parse_ComandoFor() {
+// ComandoFor -> 'for' '(' DeclaraVariavel Condicao ')' Bloco
+ASTNode *Parser::parse_ComandoFor() {
   if (peek().type == "FOR") {
     match("FOR");
     match("LPAREN");
-    parse_DeclaraVariavel();
-    parse_Condicao();
+    ASTNode *init = parse_DeclaraVariavel();
+    ASTNode *cond = parse_Condicao();
     match("RPAREN");
-    parse_Bloco();
+    ASTNode *corpo = parse_Bloco();
+
+    // Utiliza o make_family para agrupar convenientemente o escopo do laço
+    return make_family(NodeType::FOR, {init, cond, corpo});
   } else {
-    throw std::runtime_error("Syntax error: expected 'for'");
+    erro("'for'");
+    return nullptr;
   }
 }

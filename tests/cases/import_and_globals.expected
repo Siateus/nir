@@ -1,0 +1,2 @@
+Nome do Arquivo examples/import_and_globals.nir
+Falha na analise sintatica: Erro de sintaxe na linha 1, coluna 1: esperado fun, import, var ou EOF, mas encontrou 'import'
