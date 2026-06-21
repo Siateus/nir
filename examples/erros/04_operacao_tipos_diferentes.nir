@@ -1,0 +1,5 @@
+fun main(): void {
+    var texto: string = "Nir";
+    var inteiro: int = 2;
+    var resultado: int = texto + inteiro;
+}

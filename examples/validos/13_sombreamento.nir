@@ -1,0 +1,26 @@
+fun main(): void {
+    var valor: int = 10;
+
+    print(valor);
+
+    if (valor == 10) {
+        var valor: int = 20;
+        print(valor);
+
+        if (valor == 20) {
+            var valor: int = 30;
+            print(valor);
+        }
+
+        print(valor);
+    }
+
+    print(valor);
+}
+
+// Saida esperada:
+// 10
+// 20
+// 30
+// 20
+// 10

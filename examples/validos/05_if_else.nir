@@ -1,0 +1,14 @@
+fun main(): void {
+    var nota: int = 75;
+
+    if (nota >= 90) {
+        print("conceito A");
+    } else if (nota >= 70) {
+        print("conceito B");
+    } else {
+        print("conceito C");
+    }
+}
+
+// Saida esperada:
+// conceito B

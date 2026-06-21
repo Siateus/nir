@@ -1,18 +1,15 @@
 #include "../include/parser.hpp"
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
 Parser::Parser(const std::vector<Token> &tokens_lexer)
     : tokens(tokens_lexer), atual(0) {}
 
-// Altere a assinatura no parser.hpp para retornar ASTNode* se quiser capturar
-// na main
 ASTNode *Parser::parser() {
   try {
     return parse_Prog();
   } catch (const std::runtime_error &e) {
-    std::cerr << "Falha na analise sintatica: " << e.what() << std::endl;
+    throw;
     return nullptr;
   }
 }
@@ -46,7 +43,6 @@ void Parser::erro(const std::string &esperado) {
 
 bool Parser::is_eof() { return peek().type == "EOF"; }
 
-// Prog -> ListaGlobal EOF
 ASTNode *Parser::parse_Prog() {
   if (peek().type == "IMPORT" || peek().type == "VAR" || peek().type == "FUN" ||
       peek().type == "EOF") {
@@ -63,7 +59,6 @@ ASTNode *Parser::parse_Prog() {
   }
 }
 
-// ListaGlobal -> NivelGlobal ListaGlobal | ε
 ASTNode *Parser::parse_ListaGlobal() {
   if (peek().type == "IMPORT" || peek().type == "VAR" || peek().type == "FUN") {
     ASTNode *nivel = parse_NivelGlobal();
@@ -74,14 +69,13 @@ ASTNode *Parser::parse_ListaGlobal() {
     }
     return nivel ? nivel : cauda;
   } else if (peek().type == "EOF") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("fun, import, var ou EOF");
     return nullptr;
   }
 }
 
-// NivelGlobal -> DeclaraFuncao | DeclaraImport | DeclaraGlobal
 ASTNode *Parser::parse_NivelGlobal() {
   if (peek().type == "IMPORT") {
     return parse_DeclaraImport();
@@ -95,22 +89,22 @@ ASTNode *Parser::parse_NivelGlobal() {
   }
 }
 
-// DeclaraImport -> 'import' 'id' ';'
+// DeclaraImport -> 'import' 'STRING' ';'
 ASTNode *Parser::parse_DeclaraImport() {
   if (peek().type == "IMPORT") {
     match("IMPORT");
-    std::string modulo = peek().value;
-    match("ID");
+    std::string caminho = peek().value;
+    match("STRING");
     match("SEMICOLON");
 
-    return new ASTNode(NodeType::IMPORT, modulo);
+    caminho = caminho.substr(1, caminho.size() - 2);
+    return new ASTNode(NodeType::IMPORT, caminho);
   } else {
-    erro("import, identificador ou ';'");
+    erro("import, caminho de arquivo entre aspas ou ';'");
     return nullptr;
   }
 }
 
-// DeclaraGlobal -> DeclaraVariavel
 ASTNode *Parser::parse_DeclaraGlobal() {
   if (peek().type == "VAR") {
     return parse_DeclaraVariavel();
@@ -120,7 +114,6 @@ ASTNode *Parser::parse_DeclaraGlobal() {
   }
 }
 
-// DeclaraFuncao -> 'fun' 'id' '(' ListaParametros ')' ':' Tipo Bloco
 ASTNode *Parser::parse_DeclaraFuncao() {
   if (peek().type == "FUN") {
     match("FUN");
@@ -147,7 +140,6 @@ ASTNode *Parser::parse_DeclaraFuncao() {
   }
 }
 
-// ListaParametros -> Parametro CaudaParametros | ε
 ASTNode *Parser::parse_ListaParametros() {
   if (peek().type == "ID") {
     ASTNode *param = parse_Parametro();
@@ -158,14 +150,13 @@ ASTNode *Parser::parse_ListaParametros() {
     }
     return param ? param : cauda;
   } else if (peek().type == "RPAREN") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("identificador ou ')'");
     return nullptr;
   }
 }
 
-// CaudaParametros -> ',' Parametro CaudaParametros | ε
 ASTNode *Parser::parse_CaudaParametros() {
   if (peek().type == "COMMA") {
     match("COMMA");
@@ -177,14 +168,13 @@ ASTNode *Parser::parse_CaudaParametros() {
     }
     return param ? param : cauda;
   } else if (peek().type == "RPAREN") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("',' ou ')'");
     return nullptr;
   }
 }
 
-// Parametro -> 'id' ':' Tipo
 ASTNode *Parser::parse_Parametro() {
   if (peek().type == "ID") {
     std::string nome_param = peek().value;
@@ -202,7 +192,6 @@ ASTNode *Parser::parse_Parametro() {
   }
 }
 
-// Bloco -> '{' ListaComandos '}'
 ASTNode *Parser::parse_Bloco() {
   if (peek().type == "LBRACE") {
     match("LBRACE");
@@ -219,7 +208,6 @@ ASTNode *Parser::parse_Bloco() {
   }
 }
 
-// ListaComandos -> Comando ListaComandos | ε
 ASTNode *Parser::parse_ListaComandos() {
   if (peek().type == "ID" || peek().type == "VAR" || peek().type == "RETURN" ||
       peek().type == "PRINT" || peek().type == "WHILE" || peek().type == "IF" ||
@@ -233,7 +221,7 @@ ASTNode *Parser::parse_ListaComandos() {
     }
     return cmd ? cmd : cauda;
   } else if (peek().type == "RBRACE") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("identificador, 'var', 'return', 'print', 'while', 'if', 'for' ou "
          "'do'");
@@ -241,7 +229,6 @@ ASTNode *Parser::parse_ListaComandos() {
   }
 }
 
-// Comando -> ComandoSimples | ComandoComposto
 ASTNode *Parser::parse_Comando() {
   if (peek().type == "ID" || peek().type == "VAR" || peek().type == "RETURN" ||
       peek().type == "PRINT") {
@@ -256,8 +243,6 @@ ASTNode *Parser::parse_Comando() {
   }
 }
 
-// ComandoSimples -> DeclaraVariavel | ComandoRetorno | ComandoPrint | 'id'
-// CaudaComandoId
 ASTNode *Parser::parse_ComandoSimples() {
   if (peek().type == "VAR") {
     return parse_DeclaraVariavel();
@@ -268,15 +253,13 @@ ASTNode *Parser::parse_ComandoSimples() {
   } else if (peek().type == "ID") {
     std::string nome_id = peek().value;
     match("ID");
-    return parse_CaudaComandoId(
-        nome_id); // Passa o lexema do identificador adiante
+    return parse_CaudaComandoId(nome_id);
   } else {
     erro("identificador, 'var', 'print' ou 'return'");
     return nullptr;
   }
 }
 
-// CaudaComandoId -> '=' ExpressaoAritmetica ';' | '(' ListaArgumentos ')' ';'
 ASTNode *Parser::parse_CaudaComandoId(const std::string &nome_id) {
   if (peek().type == "ASSIGN") {
     match("ASSIGN");
@@ -304,7 +287,6 @@ ASTNode *Parser::parse_CaudaComandoId(const std::string &nome_id) {
   }
 }
 
-// ComandoComposto -> ComandoWhile | ComandoIf | ComandoDoWhile | ComandoFor
 ASTNode *Parser::parse_ComandoComposto() {
   if (peek().type == "WHILE") {
     return parse_ComandoWhile();
@@ -320,7 +302,6 @@ ASTNode *Parser::parse_ComandoComposto() {
   }
 }
 
-// DeclaraVariavel -> 'var' 'id' ':' Tipo Inicializacao ';'
 ASTNode *Parser::parse_DeclaraVariavel() {
   if (peek().type == "VAR") {
     match("VAR");
@@ -343,20 +324,18 @@ ASTNode *Parser::parse_DeclaraVariavel() {
   }
 }
 
-// Inicializacao -> '=' ExpressaoAritmetica | ε
 ASTNode *Parser::parse_Inicializacao() {
   if (peek().type == "ASSIGN") {
     match("ASSIGN");
     return parse_ExpressaoAritmetica();
   } else if (peek().type == "SEMICOLON") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("'=' ou ';'");
     return nullptr;
   }
 }
 
-// ComandoRetorno -> 'return' ExpressaoAritmetica ';'
 ASTNode *Parser::parse_ComandoRetorno() {
   if (peek().type == "RETURN") {
     match("RETURN");
@@ -373,7 +352,6 @@ ASTNode *Parser::parse_ComandoRetorno() {
   }
 }
 
-// ComandoPrint -> 'print' '(' ExpressaoAritmetica ')' ';'
 ASTNode *Parser::parse_ComandoPrint() {
   if (peek().type == "PRINT") {
     match("PRINT");
@@ -392,17 +370,12 @@ ASTNode *Parser::parse_ComandoPrint() {
   }
 }
 
-// Tipo -> 'i32' | 'i64' | 'f32' | 'f64' | 'char' | 'void' | 'string'
 ASTNode *Parser::parse_Tipo() {
   std::string rotulo_tipo = peek().value;
-  if (peek().type == "TYPE_I32") {
-    match("TYPE_I32");
-  } else if (peek().type == "TYPE_I64") {
-    match("TYPE_I64");
-  } else if (peek().type == "TYPE_F32") {
-    match("TYPE_F32");
-  } else if (peek().type == "TYPE_F64") {
-    match("TYPE_F64");
+  if (peek().type == "TYPE_INT") {
+    match("TYPE_INT");
+  } else if (peek().type == "TYPE_FLOAT") {
+    match("TYPE_FLOAT");
   } else if (peek().type == "TYPE_CHAR") {
     match("TYPE_CHAR");
   } else if (peek().type == "TYPE_VOID") {
@@ -410,18 +383,17 @@ ASTNode *Parser::parse_Tipo() {
   } else if (peek().type == "TYPE_STRING") {
     match("TYPE_STRING");
   } else {
-    erro("um tipo (como 'i32', 'i64', 'f32', 'f64', 'string', 'void' ou "
+    erro("um tipo (como 'int', 'float', 'string', 'void' ou "
          "'char')");
     return nullptr;
   }
   return new ASTNode(NodeType::TYPE, rotulo_tipo);
 }
 
-// Condicao -> ExpressaoOu
 ASTNode *Parser::parse_Condicao() {
   if (peek().type == "NOT" || peek().type == "LPAREN" || peek().type == "ID" ||
-      peek().type == "NUMBER" || peek().type == "CHAR" || peek().type == "STRING" ||
-      peek().type == "MINUS") {
+      peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
     return parse_ExpressaoOu();
   } else {
     erro("'!', '(', identificador, número, caractere, string ou '-'");
@@ -429,11 +401,10 @@ ASTNode *Parser::parse_Condicao() {
   }
 }
 
-// ExpressaoOu -> ExpressaoE CaudaExpressaoOu
 ASTNode *Parser::parse_ExpressaoOu() {
   if (peek().type == "NOT" || peek().type == "LPAREN" || peek().type == "ID" ||
-      peek().type == "NUMBER" || peek().type == "CHAR" || peek().type == "STRING" ||
-      peek().type == "MINUS") {
+      peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
     ASTNode *esq = parse_ExpressaoE();
     return parse_CaudaExpressaoOu(esq);
   } else {
@@ -442,7 +413,6 @@ ASTNode *Parser::parse_ExpressaoOu() {
   }
 }
 
-// CaudaExpressaoOu -> '||' ExpressaoE CaudaExpressaoOu | ε
 ASTNode *Parser::parse_CaudaExpressaoOu(ASTNode *esq) {
   if (peek().type == "OR") {
     match("OR");
@@ -462,11 +432,10 @@ ASTNode *Parser::parse_CaudaExpressaoOu(ASTNode *esq) {
   }
 }
 
-// ExpressaoE -> ExpLogicaUnaria CaudaExpressaoE
 ASTNode *Parser::parse_ExpressaoE() {
   if (peek().type == "NOT" || peek().type == "LPAREN" || peek().type == "ID" ||
-      peek().type == "NUMBER" || peek().type == "CHAR" || peek().type == "STRING" ||
-      peek().type == "MINUS") {
+      peek().type == "NUMBER" || peek().type == "CHAR" ||
+      peek().type == "STRING" || peek().type == "MINUS") {
     ASTNode *esq = parse_ExpLogicaUnaria();
     return parse_CaudaExpressaoE(esq);
   } else {
@@ -475,7 +444,6 @@ ASTNode *Parser::parse_ExpressaoE() {
   }
 }
 
-// CaudaExpressaoE -> '&&' ExpLogicaUnaria CaudaExpressaoE | ε
 ASTNode *Parser::parse_CaudaExpressaoE(ASTNode *esq) {
   if (peek().type == "AND") {
     match("AND");
@@ -488,15 +456,13 @@ ASTNode *Parser::parse_CaudaExpressaoE(ASTNode *esq) {
 
     return parse_CaudaExpressaoE(opNode);
   } else if (peek().type == "RPAREN" || peek().type == "OR") {
-    return esq; // ε
+    return esq;
   } else {
     erro("'&&', ')' ou '||'");
     return nullptr;
   }
 }
 
-// ExpLogicaUnaria -> '!' ExpLogicaUnaria | '(' Condicao ')' |
-// ExpressaoRelacional
 ASTNode *Parser::parse_ExpLogicaUnaria() {
   if (peek().type == "NOT") {
     match("NOT");
@@ -511,8 +477,9 @@ ASTNode *Parser::parse_ExpLogicaUnaria() {
     ASTNode *cond = parse_Condicao();
     match("RPAREN");
     return cond;
-  } else if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
-             peek().type == "STRING" || peek().type == "MINUS") {
+  } else if (peek().type == "ID" || peek().type == "NUMBER" ||
+             peek().type == "CHAR" || peek().type == "STRING" ||
+             peek().type == "MINUS") {
     return parse_ExpressaoRelacional();
   } else {
     erro("'!', '(', identificador, número, caractere, string ou '-'");
@@ -520,7 +487,6 @@ ASTNode *Parser::parse_ExpLogicaUnaria() {
   }
 }
 
-// ExpressaoRelacional -> ExpressaoAritmetica CaudaRelacional
 ASTNode *Parser::parse_ExpressaoRelacional() {
   if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
       peek().type == "STRING" || peek().type == "MINUS") {
@@ -532,14 +498,12 @@ ASTNode *Parser::parse_ExpressaoRelacional() {
   }
 }
 
-// CaudaRelacional -> '==' ExpressaoAritmetica | '!=' ExpressaoAritmetica | ...
-// | ε
 ASTNode *Parser::parse_CaudaRelacional(ASTNode *esq) {
   if (peek().type == "EQ" || peek().type == "NEQ" || peek().type == "GT" ||
       peek().type == "LT" || peek().type == "GE" || peek().type == "LE") {
 
     std::string op = peek().value;
-    advance(); // Consome o operador condicional relacional
+    advance();
     ASTNode *dir = parse_ExpressaoAritmetica();
 
     ASTNode *relNode = new ASTNode(NodeType::BIN_OP, op);
@@ -556,7 +520,6 @@ ASTNode *Parser::parse_CaudaRelacional(ASTNode *esq) {
   }
 }
 
-// ExpressaoAritmetica -> Termo CaudaExpressaoAritmetica
 ASTNode *Parser::parse_ExpressaoAritmetica() {
   if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
       peek().type == "STRING" || peek().type == "MINUS") {
@@ -568,7 +531,6 @@ ASTNode *Parser::parse_ExpressaoAritmetica() {
   }
 }
 
-// CaudaExpressaoAritmetica -> '+' Termo CaudaExpressaoAritmetica | ... | ε
 ASTNode *Parser::parse_CaudaExpressaoAritmetica(ASTNode *esq) {
   if (peek().type == "PLUS" || peek().type == "MINUS") {
     std::string op = peek().value;
@@ -587,7 +549,7 @@ ASTNode *Parser::parse_CaudaExpressaoAritmetica(ASTNode *esq) {
              peek().type == "GT" || peek().type == "LT" ||
              peek().type == "GE" || peek().type == "LE" ||
              peek().type == "COMMA") {
-    return esq; // ε
+    return esq;
   } else {
     erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-' ou "
          "'+'");
@@ -595,7 +557,6 @@ ASTNode *Parser::parse_CaudaExpressaoAritmetica(ASTNode *esq) {
   }
 }
 
-// Termo -> Fator CaudaTermo
 ASTNode *Parser::parse_Termo() {
   if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
       peek().type == "STRING" || peek().type == "MINUS") {
@@ -607,7 +568,6 @@ ASTNode *Parser::parse_Termo() {
   }
 }
 
-// CaudaTermo -> '*' Fator CaudaTermo | ... | ε
 ASTNode *Parser::parse_CaudaTermo(ASTNode *esq) {
   if (peek().type == "MULT" || peek().type == "DIV" || peek().type == "MOD") {
     std::string op = peek().value;
@@ -635,13 +595,12 @@ ASTNode *Parser::parse_CaudaTermo(ASTNode *esq) {
   }
 }
 
-// Fator -> 'id' CaudaFator | 'NUMBER' | 'CHAR' | 'STRING' | '-' Fator
 ASTNode *Parser::parse_Fator() {
   if (peek().type == "ID") {
     std::string nome_id = peek().value;
     match("ID");
     ASTNode *idNode = new ASTNode(NodeType::ID, nome_id);
-    return parse_CaudaFator(idNode); // Envia o ID para saber se é chamada
+    return parse_CaudaFator(idNode);
   } else if (peek().type == "NUMBER") {
     std::string val = peek().value;
     match("NUMBER");
@@ -667,7 +626,6 @@ ASTNode *Parser::parse_Fator() {
   }
 }
 
-// CaudaFator -> '(' ListaArgumentos ')' | ε
 ASTNode *Parser::parse_CaudaFator(ASTNode *idNode) {
   if (peek().type == "LPAREN") {
     match("LPAREN");
@@ -675,8 +633,7 @@ ASTNode *Parser::parse_CaudaFator(ASTNode *idNode) {
     match("RPAREN");
 
     ASTNode *callNode = new ASTNode(NodeType::CALL, idNode->value);
-    delete idNode; // Deleta o ID folha solto, pois agora virou um nó CALL
-                   // nominal
+    delete idNode;
     if (args)
       callNode->adopt(args);
     return callNode;
@@ -688,7 +645,7 @@ ASTNode *Parser::parse_CaudaFator(ASTNode *idNode) {
              peek().type == "COMMA" || peek().type == "PLUS" ||
              peek().type == "MINUS" || peek().type == "MULT" ||
              peek().type == "DIV" || peek().type == "MOD") {
-    return idNode; // ε: Não era uma chamada, retorna o ID puro
+    return idNode;
   } else {
     erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-', "
          "'+', '*', '/', '%' ou '('");
@@ -696,7 +653,6 @@ ASTNode *Parser::parse_CaudaFator(ASTNode *idNode) {
   }
 }
 
-// ListaArgumentos -> ExpressaoAritmetica CaudaArgumentos | ε
 ASTNode *Parser::parse_ListaArgumentos() {
   if (peek().type == "ID" || peek().type == "NUMBER" || peek().type == "CHAR" ||
       peek().type == "STRING" || peek().type == "MINUS") {
@@ -708,14 +664,13 @@ ASTNode *Parser::parse_ListaArgumentos() {
     }
     return expr ? expr : cauda;
   } else if (peek().type == "RPAREN") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("uma lista de argumentos válida");
     return nullptr;
   }
 }
 
-// CaudaArgumentos -> ',' ExpressaoAritmetica CaudaArgumentos | ε
 ASTNode *Parser::parse_CaudaArgumentos() {
   if (peek().type == "COMMA") {
     match("COMMA");
@@ -734,7 +689,6 @@ ASTNode *Parser::parse_CaudaArgumentos() {
   }
 }
 
-// ComandoIf -> 'if' '(' Condicao ')' Bloco ComandoElse
 ASTNode *Parser::parse_ComandoIf() {
   if (peek().type == "IF") {
     match("IF");
@@ -749,8 +703,6 @@ ASTNode *Parser::parse_ComandoIf() {
       ifNode->adopt(cond);
     if (blocoThen)
       ifNode->adopt(blocoThen);
-    // Garante a aridade estrutural fixa da árvore adicionando EMPTY se faltar
-    // else
     ifNode->adopt(blocoElse ? blocoElse : new ASTNode(NodeType::EMPTY));
     return ifNode;
   } else {
@@ -759,7 +711,6 @@ ASTNode *Parser::parse_ComandoIf() {
   }
 }
 
-// ComandoElse -> 'else' CaudaElse | ε
 ASTNode *Parser::parse_ComandoElse() {
   if (peek().type == "ELSE") {
     match("ELSE");
@@ -769,14 +720,13 @@ ASTNode *Parser::parse_ComandoElse() {
              peek().type == "PRINT" || peek().type == "WHILE" ||
              peek().type == "IF" || peek().type == "DO" ||
              peek().type == "FOR") {
-    return nullptr; // ε
+    return nullptr;
   } else {
     erro("'else' ou o próximo comando");
     return nullptr;
   }
 }
 
-// CaudaElse -> Bloco | ComandoIf
 ASTNode *Parser::parse_CaudaElse() {
   if (peek().type == "LBRACE") {
     return parse_Bloco();
@@ -788,7 +738,6 @@ ASTNode *Parser::parse_CaudaElse() {
   }
 }
 
-// ComandoWhile -> 'while' '(' Condicao ')' Bloco
 ASTNode *Parser::parse_ComandoWhile() {
   if (peek().type == "WHILE") {
     match("WHILE");
@@ -809,7 +758,6 @@ ASTNode *Parser::parse_ComandoWhile() {
   }
 }
 
-// ComandoDoWhile -> 'do' Bloco 'while' '(' Condicao ')' ';'
 ASTNode *Parser::parse_ComandoDoWhile() {
   if (peek().type == "DO") {
     match("DO");
@@ -832,7 +780,6 @@ ASTNode *Parser::parse_ComandoDoWhile() {
   }
 }
 
-// ComandoFor -> 'for' '(' DeclaraVariavel Condicao ')' Bloco
 ASTNode *Parser::parse_ComandoFor() {
   if (peek().type == "FOR") {
     match("FOR");
@@ -842,7 +789,6 @@ ASTNode *Parser::parse_ComandoFor() {
     match("RPAREN");
     ASTNode *corpo = parse_Bloco();
 
-    // Utiliza o make_family para agrupar convenientemente o escopo do laço
     return make_family(NodeType::FOR, {init, cond, corpo});
   } else {
     erro("'for'");

@@ -10,13 +10,14 @@ add_executable(nir
         include/codegen.hpp
         include/lexer.hpp
         include/parser.hpp
-        include/sematic.hpp
-        src/ast.cpp
+        include/semantic.hpp
+        include/symtab.hpp
         src/codegen.cpp
         src/lexer.cpp
         src/parser.cpp
-        src/sematic.cpp
-        main.cpp)
+        src/semantic.cpp
+        main.cpp
+)
 
 enable_testing()
 add_test(NAME regression_tests COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_tests.py)

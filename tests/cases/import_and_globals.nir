@@ -1,5 +1,5 @@
-import std;
-import math;
+import "std.nir";
+import "math.nir";
 
 var global_x: i32 = 42;
 var pi: f64 = 3.14159;

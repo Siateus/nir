@@ -1,12 +1,23 @@
-fun add(a: i32, b: i32 ): i32 {
-	return a + b;
-}
-
 fun main(): void {
-  var a: i32 = 3; //comentario
-  var b: i32 = 3;
-  var r: i32 = add(a,b); #comentario
-  print(r);
-  print(add(10,2));
-  var c:i32 = -5;
+    var item: int = 15;
+    var passos: int = 0;
+
+    do {
+        // Se for divisível por 3 e 5 ao mesmo tempo (operador lógico &&)
+        if (item % 3 == 0 && item % 5 == 0) {
+            print("FizzBuzz:");
+            print(item);
+        } else {
+            if (item % 3 == 0) {
+                print("Fizz:");
+                print(item);
+            }
+        }
+        
+        item = item - 1;
+        passos = passos + 1;
+    } while (item > 0 && passos < 10);
+    
+    print("Ciclo encerrado no item:");
+    print(item);
 }

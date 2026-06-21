@@ -1,0 +1,31 @@
+fun somar(a: int, b: int): int {
+    return a + b;
+}
+
+fun media(a: float, b: float): float {
+    var soma: float = a + b;
+    return soma / 2.0;
+}
+
+fun escolherMaior(a: int, b: int): int {
+    if (a >= b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+fun main(): void {
+    var total: int = somar(8, 7);
+    var valorMedio: float = media(4.0, 8.0);
+    var maior: int = escolherMaior(12, 9);
+
+    print(total);
+    print(valorMedio);
+    print(maior);
+}
+
+// Saida esperada:
+// 15
+// 6.0
+// 12

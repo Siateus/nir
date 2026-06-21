@@ -1,0 +1,22 @@
+var taxa: float = 1.5;
+var base: int = 10;
+
+fun aplicarTaxa(valor: float): float {
+    return valor * taxa;
+}
+
+fun incrementarBase(valor: int): int {
+    return valor + base;
+}
+
+fun main(): void {
+    var preco: float = aplicarTaxa(20.0);
+    var total: int = incrementarBase(5);
+
+    print(preco);
+    print(total);
+}
+
+// Saida esperada:
+// 30.0
+// 15

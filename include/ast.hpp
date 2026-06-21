@@ -87,6 +87,8 @@ private:
 public:
   NodeType type;
   std::string value;
+  std::string inferredType;
+  std::string coercedType;
 
   ASTNode *parent = nullptr;
   ASTNode *leftmostChild = nullptr;

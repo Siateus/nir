@@ -1,0 +1,32 @@
+fun metade(valor: float): float {
+    return valor / 2.0;
+}
+
+fun retornarReal(): float {
+    return 7;
+}
+
+fun main(): void {
+    var inicializacao: float = 3;
+    var operacao: float = 2 + 0.5;
+    var argumento: float = metade(5);
+    var retorno: float = retornarReal();
+
+    inicializacao = 4;
+
+    if (2 < 2.5 && 3.0 == 3) {
+        print("comparacoes mistas funcionaram");
+    }
+
+    print(inicializacao);
+    print(operacao);
+    print(argumento);
+    print(retorno);
+}
+
+// Saida esperada:
+// comparacoes mistas funcionaram
+// 4.0
+// 2.5
+// 2.5
+// 7.0

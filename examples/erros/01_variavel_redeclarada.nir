@@ -1,0 +1,4 @@
+fun main(): void {
+    var valor: int = 1;
+    var valor: int = 2;
+}

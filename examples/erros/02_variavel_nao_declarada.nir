@@ -1,0 +1,4 @@
+fun main(): void {
+    var valor: int = inexistente + 1;
+    print(valor);
+}

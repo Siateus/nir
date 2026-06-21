@@ -1,0 +1,18 @@
+fun main(): void {
+    var contador: int = 3;
+
+    do {
+        print(contador);
+        contador = contador - 1;
+    } while (contador > 0);
+
+    do {
+        print("executa uma vez");
+    } while (contador > 0);
+}
+
+// Saida esperada:
+// 3
+// 2
+// 1
+// executa uma vez

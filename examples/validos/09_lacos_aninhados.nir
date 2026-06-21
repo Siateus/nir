@@ -1,0 +1,34 @@
+fun main(): void {
+    var linha: int = 1;
+    var encontrados: int = 0;
+
+    while (linha <= 3) {
+        for (var coluna: int = 1; coluna <= 3) {
+            var soma: int = linha + coluna;
+
+            if (soma % 2 == 0 && (linha < coluna || linha == coluna)) {
+                print(linha);
+                print(coluna);
+                encontrados = encontrados + 1;
+            }
+
+            coluna = coluna + 1;
+        }
+        linha = linha + 1;
+    }
+
+    print("coordenadas encontradas:");
+    print(encontrados);
+}
+
+// Saida esperada:
+// 1
+// 1
+// 1
+// 3
+// 2
+// 2
+// 3
+// 3
+// coordenadas encontradas:
+// 4

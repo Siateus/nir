@@ -1,0 +1,8 @@
+fun dobrar(valor: int): int {
+    return valor * 2;
+}
+
+fun main(): void {
+    var resultado: int = dobrar(2.5);
+    print(resultado);
+}

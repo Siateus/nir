@@ -1,0 +1,55 @@
+var multiplicador: int = 2;
+
+fun dobro(valor: int): int {
+    return valor * multiplicador;
+}
+
+fun potencia(base: int, expoente: int): int {
+    var resultado: int = 1;
+    var passo: int = 0;
+
+    while (passo < expoente) {
+        resultado = resultado * base;
+        passo = passo + 1;
+    }
+
+    return resultado;
+}
+
+fun main(): void {
+    var total: int = 0;
+    var atual: int = 1;
+
+    do {
+        var calculado: int = dobro(atual);
+
+        if (calculado % 4 == 0 || atual == 1) {
+            print("valor aceito:");
+            print(calculado);
+            total = total + calculado;
+        }
+
+        atual = atual + 1;
+    } while (atual <= 5);
+
+    for (var i: int = 1; i <= 3) {
+        print(potencia(i, 2));
+        i = i + 1;
+    }
+
+    print("total:");
+    print(total);
+}
+
+// Saida esperada:
+// valor aceito:
+// 2
+// valor aceito:
+// 4
+// valor aceito:
+// 8
+// 1
+// 4
+// 9
+// total:
+// 14

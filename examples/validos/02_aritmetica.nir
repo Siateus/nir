@@ -1,0 +1,29 @@
+fun main(): void {
+    var soma: int = 10 + 5;
+    var subtracao: int = 10 - 5;
+    var produto: int = 3 * 4;
+    var divisao: int = 20 / 4;
+    var resto: int = 17 % 5;
+    var precedencia: int = 2 + 3 * 4 - 6 / 2;
+    var negativo: int = -8 + 3;
+    var real: float = 2.5 * 4.0 + 1.0;
+
+    print(soma);
+    print(subtracao);
+    print(produto);
+    print(divisao);
+    print(resto);
+    print(precedencia);
+    print(negativo);
+    print(real);
+}
+
+// Saida esperada:
+// 15
+// 5
+// 12
+// 5
+// 2
+// 11
+// -5
+// 11.0

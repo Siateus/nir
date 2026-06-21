@@ -1,0 +1,5 @@
+fun main(): void {
+    var a: float = 5.0;
+    var b: float = 2.0;
+    var resto: float = a % b;
+}

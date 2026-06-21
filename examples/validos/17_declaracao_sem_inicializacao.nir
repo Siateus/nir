@@ -1,0 +1,18 @@
+fun main(): void {
+    var valor: int;
+    var real: float;
+    var letra: char;
+
+    valor = 10;
+    real = 4.5;
+    letra = 'N';
+
+    print(valor);
+    print(real);
+    print(letra);
+}
+
+// Saida esperada:
+// 10
+// 4.5
+// N

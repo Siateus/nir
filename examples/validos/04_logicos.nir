@@ -1,0 +1,22 @@
+fun main(): void {
+    var ativo: int = 1;
+    var bloqueado: int = 0;
+    var nivel: int = 3;
+
+    if (ativo == 1 && bloqueado == 0) {
+        print("acesso permitido");
+    }
+
+    if (!(ativo == 0) && (nivel >= 3 || bloqueado != 0)) {
+        print("expressao composta verdadeira");
+    }
+
+    if (!bloqueado) {
+        print("nao bloqueado");
+    }
+}
+
+// Saida esperada:
+// acesso permitido
+// expressao composta verdadeira
+// nao bloqueado

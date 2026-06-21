@@ -1,0 +1,31 @@
+fun fatorial(n: int): int {
+    if (n <= 1) {
+        return 1;
+    } else {
+        return n * fatorial(n - 1);
+    }
+}
+
+fun fibonacci(n: int): int {
+    if (n <= 1) {
+        return n;
+    } else {
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+}
+
+fun main(): void {
+    var fat: int = fatorial(5);
+    var fib: int = fibonacci(8);
+
+    print("fatorial de 5:");
+    print(fat);
+    print("fibonacci de 8:");
+    print(fib);
+}
+
+// Saida esperada:
+// fatorial de 5:
+// 120
+// fibonacci de 8:
+// 21

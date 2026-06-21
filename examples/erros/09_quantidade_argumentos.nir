@@ -1,0 +1,8 @@
+fun somar(a: int, b: int): int {
+    return a + b;
+}
+
+fun main(): void {
+    var resultado: int = somar(1);
+    print(resultado);
+}

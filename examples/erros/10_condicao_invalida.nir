@@ -1,0 +1,7 @@
+fun main(): void {
+    var valor: float = 1.5;
+
+    while (valor) {
+        valor = valor - 1.0;
+    }
+}

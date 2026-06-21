@@ -1,0 +1,6 @@
+fun quadrado(valor: float): float {
+    return valor * valor;
+}
+
+// Este arquivo nao produz saida diretamente.
+// A funcao quadrado(3.0) retorna 9.0.

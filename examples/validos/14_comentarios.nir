@@ -1,0 +1,20 @@
+fun main(): void {
+    // Comentario com duas barras.
+    var a: int = 1;
+
+    -- Comentario com dois hifens.
+    var b: int = 2;
+
+    # Comentario iniciado por cerquilha.
+    var c: int = 3;
+
+    /*
+       Comentario de bloco em varias linhas.
+    */
+    print(a + b + c);
+    print("texto com // e # nao vira comentario");
+}
+
+// Saida esperada:
+// 6
+// texto com // e # nao vira comentario

@@ -1,0 +1,8 @@
+fun calcular(): int {
+    return 2.5;
+}
+
+fun main(): void {
+    var resultado: int = calcular();
+    print(resultado);
+}

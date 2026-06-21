@@ -1,0 +1,17 @@
+fun main(): void {
+    var quantidade: int = 42;
+    var temperatura: float = 23.5;
+    var categoria: char = 'A';
+    var mensagem: string = "Tipos basicos:";
+
+    print(mensagem);
+    print(quantidade);
+    print(temperatura);
+    print(categoria);
+}
+
+// Saida esperada:
+// Tipos basicos:
+// 42
+// 23.5
+// A

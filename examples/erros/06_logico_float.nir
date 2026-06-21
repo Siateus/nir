@@ -1,0 +1,7 @@
+fun main(): void {
+    var valor: float = 1.0;
+
+    if (valor && 1) {
+        print("invalido");
+    }
+}

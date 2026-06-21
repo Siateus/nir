@@ -1,0 +1,8 @@
+import "matematica.nir";
+
+fun preparar(valor: float): float {
+    return quadrado(valor) + 1;
+}
+
+// Este arquivo nao produz saida diretamente.
+// A funcao preparar(3.0) retorna 10.0.
