@@ -1,3 +1,0 @@
-fun main(): void {
-  var a: i32 = ;
-}
