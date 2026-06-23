@@ -29,3 +29,16 @@ add_test(
                 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_examples.py
                 --compiler $<TARGET_FILE:nir>
 )
+
+add_custom_target(teste
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_valid_examples.py
+                --compiler $<TARGET_FILE:nir>
+                --output-dir ${CMAKE_CURRENT_BINARY_DIR}/examples_sam
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_examples.py
+                --compiler $<TARGET_FILE:nir>
+        DEPENDS nir
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Compilando exemplos validos em .sam e executando testes Nir"
+)

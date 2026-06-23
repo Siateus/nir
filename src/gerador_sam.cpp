@@ -22,6 +22,10 @@ static InformacaoVariavel criar_informacao_variavel(ASTNode *no_tipo, int desloc
   return {deslocamento, e_string};
 }
 
+static bool ultima_instrucao_encerra_funcao(const std::vector<std::string> &codigo) {
+  return !codigo.empty() && codigo.back() == "RST";
+}
+
 std::unordered_map<std::string, InformacaoVariavel> deslocamentos_globais;
 std::unordered_map<std::string, InformacaoVariavel> tabela_deslocamentos;
 std::unordered_map<ASTNode *, int> deslocamentos_declaracoes_locais;
@@ -269,6 +273,9 @@ void GeradorSAM::traduzir_comando(ASTNode *no, bool traduzir_proximos) {
     } else {
       std::vector<std::string> nomes_parametros;
       ASTNode *parametro = no->leftmostChild;
+      std::string tipo_retorno = "void";
+      if (parametro && parametro->type == NodeType::TYPE)
+        tipo_retorno = parametro->value;
       if (parametro &&
           (parametro->type == NodeType::TYPE || parametro->type == NodeType::ID))
         parametro = parametro->next;
@@ -312,8 +319,10 @@ void GeradorSAM::traduzir_comando(ASTNode *no, bool traduzir_proximos) {
       if (quantidade_locais > 0)
         codigo_sam.push_back("ADDSP -" + std::to_string(quantidade_locais));
 
-      codigo_sam.push_back("UNLINK");
-      codigo_sam.push_back("RST");
+      if (tipo_retorno == "void") {
+        codigo_sam.push_back("UNLINK");
+        codigo_sam.push_back("RST");
+      }
     }
 
     dentro_de_funcao = escopo_pai_era_funcao;
@@ -466,11 +475,15 @@ void GeradorSAM::traduzir_comando(ASTNode *no, bool traduzir_proximos) {
     codigo_sam.push_back("JUMP " + rotulo_senao);
     codigo_sam.push_back(rotulo_entao + ":");
     traduzir_comando(bloco_entao, false);
-    codigo_sam.push_back("JUMP " + rotulo_fim);
+    bool entao_encerra_funcao = ultima_instrucao_encerra_funcao(codigo_sam);
+    if (!entao_encerra_funcao)
+      codigo_sam.push_back("JUMP " + rotulo_fim);
     codigo_sam.push_back(rotulo_senao + ":");
     if (bloco_senao && bloco_senao->type != NodeType::EMPTY)
       traduzir_comando(bloco_senao, false);
-    codigo_sam.push_back(rotulo_fim + ":");
+    bool senao_encerra_funcao = ultima_instrucao_encerra_funcao(codigo_sam);
+    if (!entao_encerra_funcao || !senao_encerra_funcao)
+      codigo_sam.push_back(rotulo_fim + ":");
     break;
   }
 
