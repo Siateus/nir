@@ -9,7 +9,6 @@
 enum class NodeType {
   PROG,
   BLOCK,
-  IMPORT,
   FUN_DECL,
   VAR_DECL,
   PARAM,
@@ -41,8 +40,6 @@ private:
       return "PROG";
     case NodeType::BLOCK:
       return "BLOCK";
-    case NodeType::IMPORT:
-      return "IMPORT";
     case NodeType::FUN_DECL:
       return "FUN_DECL";
     case NodeType::VAR_DECL:
@@ -163,6 +160,8 @@ public:
       next->print(nivel);
     }
   }
+
+  void print_ast(int nivel = 0) { print(nivel); }
 };
 
 inline ASTNode *make_family(NodeType op, const std::vector<ASTNode *> &kids) {

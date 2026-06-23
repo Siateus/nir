@@ -17,12 +17,13 @@ private:
   void match(const std::string &tipo);
   Token advance();
   bool chegou_ao_fim();
+  std::string descrever_tipo_token(const std::string &tipo) const;
+  std::string descrever_token(const Token &token) const;
   void erro(const std::string &esperado);
 
   ASTNode *analisar_programa();
   ASTNode *analisar_lista_global();
   ASTNode *analisar_nivel_global();
-  ASTNode *analisar_declaracao_import();
   ASTNode *analisar_declaracao_global();
   ASTNode *analisar_declaracao_funcao();
   ASTNode *analisar_lista_parametros();

@@ -6,7 +6,7 @@
 arquivo .nir
     |
     v
-carregador e imports
+carregador
     |
     v
 análise léxica -> tokens
@@ -25,7 +25,7 @@ O fluxo é coordenado por `main.cpp`. Em caso de erro, uma exceção
 `std::runtime_error` interrompe as etapas seguintes e o compilador retorna
 código diferente de zero.
 
-## Carregamento e imports
+## Carregamento
 
 Arquivos:
 
@@ -36,13 +36,7 @@ Responsabilidades:
 
 - validar a extensão `.nir`;
 - abrir o arquivo fonte;
-- resolver caminhos relativos e absolutos;
-- detectar ciclos e imports repetidos;
-- analisar cada arquivo;
-- combinar os níveis globais em uma única AST.
-
-Os caminhos são canonicalizados antes de entrar nos conjuntos de arquivos
-carregados e em carregamento.
+- analisar o arquivo informado.
 
 ## Análise léxica
 

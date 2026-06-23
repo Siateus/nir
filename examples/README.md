@@ -24,7 +24,6 @@ Os exemplos estão divididos em:
 | `13_sombreamento.nir` | variáveis de mesmo nome em escopos diferentes |
 | `14_comentarios.nir` | comentários `//`, `--`, `#` e `/* ... */` |
 | `15_completo.nir` | combinação dos principais recursos |
-| `16_import.nir` | imports reais, recursivos e sem duplicação |
 | `17_declaracao_sem_inicializacao.nir` | declaração sem valor inicial e atribuição posterior |
 | `18_conversao_numerica.nir` | promoção implicita de `int` para `float` |
 | `19_break_continue.nir` | `break`, `continue` e laços aninhados |
@@ -57,10 +56,6 @@ Existe promoção implícita segura de `int` para `float` em inicializações,
 atribuições, argumentos, retornos, operações e comparações. A conversão inversa,
 de `float` para `int`, continua exigindo um recurso explícito que ainda não faz
 parte da linguagem.
-
-`import "caminho/arquivo.nir";` inclui exatamente o arquivo indicado. Caminhos
-relativos são resolvidos a partir do arquivo importador. Imports repetidos são
-carregados uma vez e ciclos geram erro.
 
 Strings possuem ownership único: variáveis podem receber literais de string e
 ser reatribuídas, mas cópias entre variáveis, parâmetros e retornos de string

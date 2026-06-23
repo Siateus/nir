@@ -1,5 +1,6 @@
 #include "../include/analisador_sintatico.hpp"
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 
 AnalisadorSintatico::AnalisadorSintatico(const std::vector<Token> &tokens_recebidos)
@@ -72,25 +73,85 @@ void AnalisadorSintatico::match(const std::string &tipo) {
   if (peek().tipo == tipo) {
     advance();
   } else {
-    erro("'" + tipo + "'");
+    erro(descrever_tipo_token(tipo));
   }
+}
+
+std::string AnalisadorSintatico::descrever_tipo_token(const std::string &tipo) const {
+  static const std::unordered_map<std::string, std::string> descricoes = {
+      {"EOF", "fim do arquivo"},
+      {"ID", "identificador"},
+      {"NUMBER", "numero"},
+      {"CHAR", "caractere"},
+      {"STRING", "string"},
+      {"FUN", "'fun'"},
+      {"VAR", "'var'"},
+      {"RETURN", "'return'"},
+      {"PRINT", "'print'"},
+      {"BREAK", "'break'"},
+      {"CONTINUE", "'continue'"},
+      {"IF", "'if'"},
+      {"ELSE", "'else'"},
+      {"WHILE", "'while'"},
+      {"DO", "'do'"},
+      {"FOR", "'for'"},
+      {"TYPE_INT", "'int'"},
+      {"TYPE_FLOAT", "'float'"},
+      {"TYPE_CHAR", "'char'"},
+      {"TYPE_VOID", "'void'"},
+      {"TYPE_STRING", "'string'"},
+      {"PLUS", "'+'"},
+      {"MINUS", "'-'"},
+      {"MULT", "'*'"},
+      {"DIV", "'/'"},
+      {"MOD", "'%'"},
+      {"EQ", "'=='"},
+      {"NEQ", "'!='"},
+      {"LT", "'<'"},
+      {"GT", "'>'"},
+      {"LE", "'<='"},
+      {"GE", "'>='"},
+      {"OR", "'||'"},
+      {"AND", "'&&'"},
+      {"NOT", "'!'"},
+      {"LBRACE", "'{'"},
+      {"RBRACE", "'}'"},
+      {"LPAREN", "'('"},
+      {"RPAREN", "')'"},
+      {"COMMA", "','"},
+      {"COLON", "':'"},
+      {"SEMICOLON", "';'"},
+      {"ASSIGN", "'='"},
+  };
+
+  auto encontrado = descricoes.find(tipo);
+  return encontrado != descricoes.end() ? encontrado->second : "'" + tipo + "'";
+}
+
+std::string AnalisadorSintatico::descrever_token(const Token &token) const {
+  if (token.tipo == "EOF")
+    return "fim do arquivo";
+
+  std::string descricao = descrever_tipo_token(token.tipo);
+  if (token.valor.empty() || descricao == "'" + token.valor + "'")
+    return descricao;
+
+  return "'" + token.valor + "' (" + descricao + ")";
 }
 
 void AnalisadorSintatico::erro(const std::string &esperado) {
   Token t = peek();
-  std::string encontrado =
-      (t.tipo == "EOF") ? "fim de arquivo (EOF)" : "'" + t.valor + "'";
-  throw std::runtime_error("Erro de sintaxe na linha " +
-                           std::to_string(t.linha) + ", coluna " +
-                           std::to_string(t.coluna) + ": esperado " + esperado +
-                           ", mas encontrou " + encontrado);
+  std::string mensagem = "Erro sintatico na linha " + std::to_string(t.linha) +
+                         ", coluna " + std::to_string(t.coluna) + ".\n";
+  mensagem += "Esperado: " + esperado + ".\n";
+  mensagem += "Encontrado: " + descrever_token(t) + ".";
+  throw std::runtime_error(mensagem);
 }
 
 bool AnalisadorSintatico::chegou_ao_fim() { return peek().tipo == "EOF"; }
 
 ASTNode *AnalisadorSintatico::analisar_programa() {
-  if (peek().tipo == "IMPORT" || peek().tipo == "VAR" || peek().tipo == "FUN" ||
-      peek().tipo == "EOF") {
+  if (peek().tipo == "VAR" || peek().tipo == "FUN" || peek().tipo == "EOF") {
     ASTNode *lista_global = analisar_lista_global();
     match("EOF");
 
@@ -99,13 +160,13 @@ ASTNode *AnalisadorSintatico::analisar_programa() {
       no_programa->adopt(lista_global);
     return no_programa;
   } else {
-    erro("fun, import, var ou EOF");
+    erro("declaracao global, declaracao de funcao ou fim do arquivo");
     return nullptr;
   }
 }
 
 ASTNode *AnalisadorSintatico::analisar_lista_global() {
-  if (peek().tipo == "IMPORT" || peek().tipo == "VAR" || peek().tipo == "FUN") {
+  if (peek().tipo == "VAR" || peek().tipo == "FUN") {
     ASTNode *nivel = analisar_nivel_global();
     ASTNode *cauda = analisar_lista_global();
 
@@ -116,36 +177,18 @@ ASTNode *AnalisadorSintatico::analisar_lista_global() {
   } else if (peek().tipo == "EOF") {
     return nullptr;
   } else {
-    erro("fun, import, var ou EOF");
+    erro("declaracao global, declaracao de funcao ou fim do arquivo");
     return nullptr;
   }
 }
 
 ASTNode *AnalisadorSintatico::analisar_nivel_global() {
-  if (peek().tipo == "IMPORT") {
-    return analisar_declaracao_import();
-  } else if (peek().tipo == "FUN") {
+  if (peek().tipo == "FUN") {
     return analisar_declaracao_funcao();
   } else if (peek().tipo == "VAR") {
     return analisar_declaracao_global();
   } else {
-    erro("fun, import ou var");
-    return nullptr;
-  }
-}
-
-// DeclaraImport -> 'import' 'STRING' ';'
-ASTNode *AnalisadorSintatico::analisar_declaracao_import() {
-  if (peek().tipo == "IMPORT") {
-    match("IMPORT");
-    std::string caminho = peek().valor;
-    match("STRING");
-    match("SEMICOLON");
-
-    caminho = caminho.substr(1, caminho.size() - 2);
-    return criar_no(NodeType::IMPORT, caminho);
-  } else {
-    erro("import, caminho de arquivo entre aspas ou ';'");
+    erro("declaracao global iniciada por 'var' ou funcao iniciada por 'fun'");
     return nullptr;
   }
 }
@@ -154,7 +197,7 @@ ASTNode *AnalisadorSintatico::analisar_declaracao_global() {
   if (peek().tipo == "VAR") {
     return analisar_declaracao_variavel();
   } else {
-    erro("'var'");
+    erro("declaracao global iniciada por 'var'");
     return nullptr;
   }
 }
@@ -180,7 +223,7 @@ ASTNode *AnalisadorSintatico::analisar_declaracao_funcao() {
       no_funcao->adopt(bloco);
     return no_funcao;
   } else {
-    erro("'fun'");
+    erro("declaracao de funcao valida");
     return nullptr;
   }
 }
@@ -197,7 +240,7 @@ ASTNode *AnalisadorSintatico::analisar_lista_parametros() {
   } else if (peek().tipo == "RPAREN") {
     return nullptr;
   } else {
-    erro("identificador ou ')'");
+    erro("lista de parametros valida ou ')' para funcao sem parametros");
     return nullptr;
   }
 }
@@ -215,7 +258,7 @@ ASTNode *AnalisadorSintatico::analisar_cauda_parametros() {
   } else if (peek().tipo == "RPAREN") {
     return nullptr;
   } else {
-    erro("',' ou ')'");
+    erro("',' para separar parametros ou ')' para encerrar a lista");
     return nullptr;
   }
 }
@@ -232,7 +275,7 @@ ASTNode *AnalisadorSintatico::analisar_parametro() {
       no_parametro->adopt(tipo);
     return no_parametro;
   } else {
-    erro("identificador");
+    erro("parametro no formato nome: tipo");
     return nullptr;
   }
 }
@@ -248,7 +291,7 @@ ASTNode *AnalisadorSintatico::analisar_bloco() {
       no_bloco->adopt(comandos);
     return no_bloco;
   } else {
-    erro("'{'");
+    erro("bloco iniciado por '{'");
     return nullptr;
   }
 }
@@ -269,8 +312,7 @@ ASTNode *AnalisadorSintatico::analisar_lista_comandos() {
   } else if (peek().tipo == "RBRACE") {
     return nullptr;
   } else {
-    erro("identificador, 'var', 'return', 'print', 'break', 'continue', "
-         "'while', 'if', 'for' ou 'do'");
+    erro("comando valido ou '}' para encerrar o bloco");
     return nullptr;
   }
 }
@@ -284,8 +326,7 @@ ASTNode *AnalisadorSintatico::analisar_comando() {
              peek().tipo == "DO" || peek().tipo == "FOR") {
     return analisar_comando_composto();
   } else {
-    erro("identificador, 'var', 'return', 'print', 'break', 'continue', "
-         "'while', 'if', 'for' ou 'do'");
+    erro("comando simples ou comando composto");
     return nullptr;
   }
 }
@@ -306,7 +347,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_simples() {
     match("ID");
     return analisar_cauda_comando_id(nome_id);
   } else {
-    erro("identificador, 'var', 'print', 'return', 'break' ou 'continue'");
+    erro("comando simples valido");
     return nullptr;
   }
 }
@@ -333,7 +374,7 @@ ASTNode *AnalisadorSintatico::analisar_cauda_comando_id(const std::string &nome_
       no_chamada->adopt(argumentos);
     return no_chamada;
   } else {
-    erro("'=' ou '('");
+    erro("atribuicao ou chamada de funcao apos o identificador '" + nome_id + "'");
     return nullptr;
   }
 }
@@ -348,7 +389,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_composto() {
   } else if (peek().tipo == "IF") {
     return analisar_comando_se();
   } else {
-    erro("'while', 'do', 'for' ou 'if'");
+    erro("comando composto valido");
     return nullptr;
   }
 }
@@ -370,7 +411,7 @@ ASTNode *AnalisadorSintatico::analisar_declaracao_variavel() {
       no_variavel->adopt(inicializacao);
     return no_variavel;
   } else {
-    erro("'var'");
+    erro("declaracao de variavel valida");
     return nullptr;
   }
 }
@@ -382,7 +423,7 @@ ASTNode *AnalisadorSintatico::analisar_inicializacao() {
   } else if (peek().tipo == "SEMICOLON") {
     return nullptr;
   } else {
-    erro("'=' ou ';'");
+    erro("inicializacao com '=' ou ';' para declaracao sem valor inicial");
     return nullptr;
   }
 }
@@ -398,7 +439,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_retorno() {
       no_retorno->adopt(expressao);
     return no_retorno;
   } else {
-    erro("'return'");
+    erro("comando de retorno valido");
     return nullptr;
   }
 }
@@ -416,7 +457,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_impressao() {
       no_impressao->adopt(expressao);
     return no_impressao;
   } else {
-    erro("'print'");
+    erro("comando de impressao valido");
     return nullptr;
   }
 }
@@ -446,8 +487,7 @@ ASTNode *AnalisadorSintatico::analisar_tipo() {
   } else if (peek().tipo == "TYPE_STRING") {
     match("TYPE_STRING");
   } else {
-    erro("um tipo (como 'int', 'float', 'string', 'void' ou "
-         "'char')");
+    erro("um tipo: 'int', 'float', 'char', 'string' ou 'void'");
     return nullptr;
   }
   return criar_no(NodeType::TYPE, rotulo_tipo);
@@ -459,7 +499,7 @@ ASTNode *AnalisadorSintatico::analisar_condicao() {
       peek().tipo == "STRING" || peek().tipo == "MINUS") {
     return analisar_expressao_ou();
   } else {
-    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    erro("expressao valida");
     return nullptr;
   }
 }
@@ -471,7 +511,7 @@ ASTNode *AnalisadorSintatico::analisar_expressao_ou() {
     ASTNode *esquerda = analisar_expressao_e();
     return analisar_cauda_expressao_ou(esquerda);
   } else {
-    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    erro("expressao valida");
     return nullptr;
   }
 }
@@ -479,6 +519,11 @@ ASTNode *AnalisadorSintatico::analisar_expressao_ou() {
 ASTNode *AnalisadorSintatico::analisar_cauda_expressao_ou(ASTNode *esquerda) {
   if (peek().tipo == "OR") {
     match("OR");
+    if (!(peek().tipo == "NOT" || peek().tipo == "LPAREN" ||
+          peek().tipo == "ID" || peek().tipo == "NUMBER" ||
+          peek().tipo == "CHAR" || peek().tipo == "STRING" ||
+          peek().tipo == "MINUS"))
+      erro("expressao valida apos operador '||'");
     ASTNode *direita = analisar_expressao_e();
 
     ASTNode *no_operador = criar_no(NodeType::BIN_OP, "||");
@@ -488,10 +533,11 @@ ASTNode *AnalisadorSintatico::analisar_cauda_expressao_ou(ASTNode *esquerda) {
 
     return analisar_cauda_expressao_ou(no_operador);
   } else if (peek().tipo == "RPAREN" || peek().tipo == "SEMICOLON" ||
-             peek().tipo == "COMMA") {
+             peek().tipo == "COMMA" || peek().tipo == "RBRACE" ||
+             peek().tipo == "EOF") {
     return esquerda; // ε
   } else {
-    erro("'||' ou ')'");
+    erro("operador logico ou delimitador valido");
     return nullptr;
   }
 }
@@ -503,7 +549,7 @@ ASTNode *AnalisadorSintatico::analisar_expressao_e() {
     ASTNode *esquerda = analisar_expressao_logica_unaria();
     return analisar_cauda_expressao_e(esquerda);
   } else {
-    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    erro("expressao valida");
     return nullptr;
   }
 }
@@ -511,6 +557,11 @@ ASTNode *AnalisadorSintatico::analisar_expressao_e() {
 ASTNode *AnalisadorSintatico::analisar_cauda_expressao_e(ASTNode *esquerda) {
   if (peek().tipo == "AND") {
     match("AND");
+    if (!(peek().tipo == "NOT" || peek().tipo == "LPAREN" ||
+          peek().tipo == "ID" || peek().tipo == "NUMBER" ||
+          peek().tipo == "CHAR" || peek().tipo == "STRING" ||
+          peek().tipo == "MINUS"))
+      erro("expressao valida apos operador '&&'");
     ASTNode *direita = analisar_expressao_logica_unaria();
 
     ASTNode *no_operador = criar_no(NodeType::BIN_OP, "&&");
@@ -520,10 +571,11 @@ ASTNode *AnalisadorSintatico::analisar_cauda_expressao_e(ASTNode *esquerda) {
 
     return analisar_cauda_expressao_e(no_operador);
   } else if (peek().tipo == "RPAREN" || peek().tipo == "OR" ||
-             peek().tipo == "SEMICOLON" || peek().tipo == "COMMA") {
+             peek().tipo == "SEMICOLON" || peek().tipo == "COMMA" ||
+             peek().tipo == "RBRACE" || peek().tipo == "EOF") {
     return esquerda;
   } else {
-    erro("'&&', ')' ou '||'");
+    erro("operador logico ou delimitador valido");
     return nullptr;
   }
 }
@@ -543,7 +595,7 @@ ASTNode *AnalisadorSintatico::analisar_expressao_logica_unaria() {
              peek().tipo == "MINUS") {
     return analisar_expressao_relacional();
   } else {
-    erro("'!', '(', identificador, número, caractere, string ou '-'");
+    erro("expressao valida");
     return nullptr;
   }
 }
@@ -555,7 +607,7 @@ ASTNode *AnalisadorSintatico::analisar_expressao_relacional() {
     ASTNode *esquerda = analisar_expressao_aritmetica();
     return analisar_cauda_relacional(esquerda);
   } else {
-    erro("identificador, número, caractere, string ou '-'");
+    erro("expressao relacional valida");
     return nullptr;
   }
 }
@@ -566,6 +618,10 @@ ASTNode *AnalisadorSintatico::analisar_cauda_relacional(ASTNode *esquerda) {
 
     std::string operador = peek().valor;
     advance();
+    if (!(peek().tipo == "LPAREN" || peek().tipo == "ID" ||
+          peek().tipo == "NUMBER" || peek().tipo == "CHAR" ||
+          peek().tipo == "STRING" || peek().tipo == "MINUS"))
+      erro("expressao valida apos operador '" + operador + "'");
     ASTNode *direita = analisar_expressao_aritmetica();
 
     ASTNode *no_relacional = criar_no(NodeType::BIN_OP, operador);
@@ -575,10 +631,11 @@ ASTNode *AnalisadorSintatico::analisar_cauda_relacional(ASTNode *esquerda) {
     return no_relacional;
   } else if (peek().tipo == "RPAREN" || peek().tipo == "AND" ||
              peek().tipo == "OR" || peek().tipo == "SEMICOLON" ||
-             peek().tipo == "COMMA") {
+             peek().tipo == "COMMA" || peek().tipo == "RBRACE" ||
+             peek().tipo == "EOF") {
     return esquerda; // ε
   } else {
-    erro("'==', '!=', '>=', '<=', '<', '>', ')', '&&' ou '||'");
+    erro("operador relacional ou delimitador valido");
     return nullptr;
   }
 }
@@ -590,7 +647,7 @@ ASTNode *AnalisadorSintatico::analisar_expressao_aritmetica() {
     ASTNode *esquerda = analisar_termo();
     return analisar_cauda_expressao_aritmetica(esquerda);
   } else {
-    erro("uma expressão");
+    erro("expressao aritmetica valida");
     return nullptr;
   }
 }
@@ -599,6 +656,10 @@ ASTNode *AnalisadorSintatico::analisar_cauda_expressao_aritmetica(ASTNode *esque
   if (peek().tipo == "PLUS" || peek().tipo == "MINUS") {
     std::string operador = peek().valor;
     advance();
+    if (!(peek().tipo == "LPAREN" || peek().tipo == "ID" ||
+          peek().tipo == "NUMBER" || peek().tipo == "CHAR" ||
+          peek().tipo == "STRING" || peek().tipo == "MINUS"))
+      erro("operando valido apos operador '" + operador + "'");
     ASTNode *direita = analisar_termo();
 
     ASTNode *no_operador = criar_no(NodeType::BIN_OP, operador);
@@ -612,11 +673,11 @@ ASTNode *AnalisadorSintatico::analisar_cauda_expressao_aritmetica(ASTNode *esque
              peek().tipo == "EQ" || peek().tipo == "NEQ" ||
              peek().tipo == "GT" || peek().tipo == "LT" ||
              peek().tipo == "GE" || peek().tipo == "LE" ||
-             peek().tipo == "COMMA") {
+             peek().tipo == "COMMA" || peek().tipo == "RBRACE" ||
+             peek().tipo == "EOF") {
     return esquerda;
   } else {
-    erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-' ou "
-         "'+'");
+    erro("operador aritmetico ou delimitador valido");
     return nullptr;
   }
 }
@@ -628,7 +689,7 @@ ASTNode *AnalisadorSintatico::analisar_termo() {
     ASTNode *esquerda = analisar_fator();
     return analisar_cauda_termo(esquerda);
   } else {
-    erro("identificador, número, caractere, string ou '-'");
+    erro("termo de expressao valido");
     return nullptr;
   }
 }
@@ -637,6 +698,10 @@ ASTNode *AnalisadorSintatico::analisar_cauda_termo(ASTNode *esquerda) {
   if (peek().tipo == "MULT" || peek().tipo == "DIV" || peek().tipo == "MOD") {
     std::string operador = peek().valor;
     advance();
+    if (!(peek().tipo == "LPAREN" || peek().tipo == "ID" ||
+          peek().tipo == "NUMBER" || peek().tipo == "CHAR" ||
+          peek().tipo == "STRING" || peek().tipo == "MINUS"))
+      erro("operando valido apos operador '" + operador + "'");
     ASTNode *direita = analisar_fator();
 
     ASTNode *no_operador = criar_no(NodeType::BIN_OP, operador);
@@ -651,11 +716,11 @@ ASTNode *AnalisadorSintatico::analisar_cauda_termo(ASTNode *esquerda) {
              peek().tipo == "GT" || peek().tipo == "LT" ||
              peek().tipo == "GE" || peek().tipo == "LE" ||
              peek().tipo == "COMMA" || peek().tipo == "PLUS" ||
-             peek().tipo == "MINUS") {
+             peek().tipo == "MINUS" || peek().tipo == "RBRACE" ||
+             peek().tipo == "EOF") {
     return esquerda; // ε
   } else {
-    erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-', "
-         "'+', '*', '/' ou '%'");
+    erro("operador de termo ou delimitador valido");
     return nullptr;
   }
 }
@@ -691,7 +756,7 @@ ASTNode *AnalisadorSintatico::analisar_fator() {
     match("RPAREN");
     return expressao;
   } else {
-    erro("identificador, número, caractere, string ou '-'");
+    erro("fator de expressao valido");
     return nullptr;
   }
 }
@@ -714,11 +779,11 @@ ASTNode *AnalisadorSintatico::analisar_cauda_fator(ASTNode *no_id) {
              peek().tipo == "GE" || peek().tipo == "LE" ||
              peek().tipo == "COMMA" || peek().tipo == "PLUS" ||
              peek().tipo == "MINUS" || peek().tipo == "MULT" ||
-             peek().tipo == "DIV" || peek().tipo == "MOD") {
+             peek().tipo == "DIV" || peek().tipo == "MOD" ||
+             peek().tipo == "RBRACE" || peek().tipo == "EOF") {
     return no_id;
   } else {
-    erro("',', ';', '||', '&&', '==', '!=', '<', '>', '<=', '>=', ')', '-', "
-         "'+', '*', '/', '%' ou '('");
+    erro("chamada de funcao, operador ou delimitador valido");
     return nullptr;
   }
 }
@@ -737,7 +802,7 @@ ASTNode *AnalisadorSintatico::analisar_lista_argumentos() {
   } else if (peek().tipo == "RPAREN") {
     return nullptr;
   } else {
-    erro("uma lista de argumentos válida");
+    erro("lista de argumentos valida");
     return nullptr;
   }
 }
@@ -755,7 +820,7 @@ ASTNode *AnalisadorSintatico::analisar_cauda_argumentos() {
   } else if (peek().tipo == "RPAREN") {
     return nullptr; // ε
   } else {
-    erro("identificador, número ou ')'");
+    erro("',' para outro argumento ou ')' para encerrar a chamada");
     return nullptr;
   }
 }
@@ -777,7 +842,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_se() {
     no_se->adopt(bloco_senao ? bloco_senao : criar_no(NodeType::EMPTY));
     return no_se;
   } else {
-    erro("'if'");
+    erro("comando condicional valido");
     return nullptr;
   }
 }
@@ -794,7 +859,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_senao() {
              peek().tipo == "FOR") {
     return nullptr;
   } else {
-    erro("'else' ou o próximo comando");
+    erro("'else', proximo comando ou fim do bloco");
     return nullptr;
   }
 }
@@ -805,7 +870,7 @@ ASTNode *AnalisadorSintatico::analisar_cauda_senao() {
   } else if (peek().tipo == "IF") {
     return analisar_comando_se();
   } else {
-    erro("'{' para início de bloco ou 'if' para comando condicional composto");
+    erro("bloco ou comando 'if' apos 'else'");
     return nullptr;
   }
 }
@@ -825,7 +890,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_enquanto() {
       no_enquanto->adopt(corpo);
     return no_enquanto;
   } else {
-    erro("'while'");
+    erro("comando while valido");
     return nullptr;
   }
 }
@@ -847,7 +912,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_faca_enquanto() {
       no_faca_enquanto->adopt(condicao);
     return no_faca_enquanto;
   } else {
-    erro("'do'");
+    erro("comando do-while valido");
     return nullptr;
   }
 }
@@ -870,7 +935,7 @@ ASTNode *AnalisadorSintatico::analisar_comando_para() {
       no_para->adopt(corpo);
     return no_para;
   } else {
-    erro("'for'");
+    erro("comando for valido");
     return nullptr;
   }
 }

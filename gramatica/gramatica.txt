@@ -1,9 +1,8 @@
 Prog -> ListaGlobal EOF
 
 ListaGlobal -> NivelGlobal ListaGlobal | ε
-NivelGlobal -> DeclaraFuncao | DeclaraImport | DeclaraGlobal
+NivelGlobal -> DeclaraFuncao | DeclaraGlobal
 
-DeclaraImport -> 'import' 'STRING' ';'
 DeclaraGlobal -> DeclaraVariavel
 DeclaraFuncao -> 'fun' 'id' '(' ListaParametros ')' ':' Tipo Bloco
 
@@ -60,8 +59,6 @@ ComandoDoWhile -> 'do' Bloco 'while' '(' Condicao ')' ';'
 ComandoFor -> 'for' '(' DeclaraVariavel Condicao ')' Bloco
 
 # Regras semanticas:
-# - import "caminho/arquivo.nir"; inclui outro arquivo fonte relativo ao
-#   arquivo importador.
 # - int e promovido implicitamente para float quando necessario.
 # - float nao e convertido implicitamente para int.
 # - string possui ownership unico: aceita literais, mas nao copia entre

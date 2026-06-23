@@ -3,8 +3,8 @@
 ## Visão geral
 
 Nir é uma linguagem procedural, estaticamente tipada e sensível a
-maiúsculas e minúsculas. O código é organizado em variáveis globais, imports e
-funções. A unidade de compilação deve possuir extensão `.nir`.
+maiúsculas e minúsculas. O código é organizado em variáveis globais e funções.
+A unidade de compilação deve possuir extensão `.nir`.
 
 ## Estrutura mínima
 
@@ -19,7 +19,7 @@ A função `main`:
 - é obrigatória;
 - não recebe parâmetros;
 - deve retornar `void`;
-- deve existir uma única vez no programa depois da resolução dos imports.
+- deve existir uma única vez no programa.
 
 ## Identificadores e literais
 
@@ -224,23 +224,6 @@ Não são permitidos:
 
 Essas restrições evitam cópia rasa, uso depois de liberação e dupla liberação.
 
-## Imports
-
-```nir
-import "modulos/matematica.nir";
-```
-
-Imports:
-
-- aceitam apenas arquivos `.nir`;
-- são resolvidos relativamente ao arquivo importador;
-- podem usar caminho absoluto;
-- podem ser recursivos;
-- carregam o mesmo arquivo apenas uma vez;
-- rejeitam ciclos.
-
-O programa combinado deve possuir apenas uma função `main`.
-
 ## Comentários
 
 ```nir
@@ -254,7 +237,7 @@ O programa combinado deve possuir apenas uma função `main`.
 ## Palavras reservadas
 
 ```text
-var fun import return print
+var fun return print
 if else while do for
 break continue
 int float char string void

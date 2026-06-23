@@ -1,6 +1,7 @@
 #include "../include/analisador_lexico.hpp"
 #include <cctype>
 #include <fstream>
+#include <iostream>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -11,7 +12,6 @@ using namespace std;
 
 const unordered_map<string, string> AnalisadorLexico::TIPOS_TOKEN = {{"return", "RETURN"},
                                                      {"fun", "FUN"},
-                                                     {"import", "IMPORT"},
                                                      {"if", "IF"},
                                                      {"else", "ELSE"},
                                                      {"while", "WHILE"},
@@ -217,4 +217,11 @@ vector<Token> AnalisadorLexico::analisar(fstream &arquivo) {
   }
   tokens.push_back({"EOF", "EOF", ultima_linha, ultima_coluna});
   return tokens;
+}
+
+void AnalisadorLexico::print_tokens(const vector<Token> &tokens) {
+  for (const Token &token : tokens) {
+    cout << token.tipo << " (" << token.valor << ")"
+         << " linha " << token.linha << ", coluna " << token.coluna << endl;
+  }
 }

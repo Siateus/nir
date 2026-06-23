@@ -23,6 +23,7 @@ public:
   AnalisadorLexico() = default;
 
   static std::vector<Token> analisar(std::fstream &arquivo);
+  static void print_tokens(const std::vector<Token> &tokens);
 };
 
 #endif
