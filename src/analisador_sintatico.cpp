@@ -923,14 +923,25 @@ ASTNode *AnalisadorSintatico::analisar_comando_para() {
     match("LPAREN");
     ASTNode *inicializacao = analisar_declaracao_variavel();
     ASTNode *condicao = analisar_condicao();
+    match("SEMICOLON");
+    std::string nome_atualizacao = peek().valor;
+    match("ID");
+    match("ASSIGN");
+    ASTNode *expressao_atualizacao = analisar_condicao();
     match("RPAREN");
     ASTNode *corpo = analisar_bloco();
+
+    ASTNode *atualizacao = criar_no(NodeType::ASSIGN);
+    atualizacao->adopt(criar_no(NodeType::ID, nome_atualizacao));
+    if (expressao_atualizacao)
+      atualizacao->adopt(expressao_atualizacao);
 
     ASTNode *no_para = criar_no(NodeType::FOR);
     if (inicializacao)
       no_para->adopt(inicializacao);
     if (condicao)
       no_para->adopt(condicao);
+    no_para->adopt(atualizacao);
     if (corpo)
       no_para->adopt(corpo);
     return no_para;

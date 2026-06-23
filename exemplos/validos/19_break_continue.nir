@@ -24,7 +24,7 @@ fun main(): void {
         break;
     } while (d < 5);
 
-    for (var linha: int = 1; linha <= 3) {
+    for (var linha: int = 1; linha <= 3; linha = linha + 1) {
         var coluna: int = 0;
 
         while (coluna < 3) {
@@ -37,8 +37,6 @@ fun main(): void {
             }
             print(linha * 10 + coluna);
         }
-
-        linha = linha + 1;
     }
 }
 

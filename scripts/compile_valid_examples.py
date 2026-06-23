@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 RAIZ_PROJETO = Path(__file__).resolve().parents[1]
-DIRETORIO_VALIDOS = RAIZ_PROJETO / "examples" / "validos"
+DIRETORIO_VALIDOS = RAIZ_PROJETO / "exemplos" / "validos"
 
 
 def executar_comando(comando):
@@ -35,7 +35,7 @@ def main():
     analisador_argumentos.add_argument(
         "--output-dir",
         dest="diretorio_saida",
-        default=str(RAIZ_PROJETO / "build" / "examples_sam"),
+        default=str(RAIZ_PROJETO / "build" / "exemplos_sam"),
         help="Diretorio onde os arquivos .sam serao gravados.",
     )
     argumentos = analisador_argumentos.parse_args()

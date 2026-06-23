@@ -3,7 +3,7 @@ fun main(): void {
     var encontrados: int = 0;
 
     while (linha <= 3) {
-        for (var coluna: int = 1; coluna <= 3) {
+        for (var coluna: int = 1; coluna <= 3; coluna = coluna + 1) {
             var soma: int = linha + coluna;
 
             if (soma % 2 == 0 && (linha < coluna || linha == coluna)) {
@@ -11,8 +11,6 @@ fun main(): void {
                 print(coluna);
                 encontrados = encontrados + 1;
             }
-
-            coluna = coluna + 1;
         }
         linha = linha + 1;
     }

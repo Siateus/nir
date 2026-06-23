@@ -339,7 +339,8 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
 
     ASTNode *inicializacao = no->leftmostChild;
     ASTNode *condicao = inicializacao ? inicializacao->next : nullptr;
-    ASTNode *corpo = condicao ? condicao->next : nullptr;
+    ASTNode *atualizacao = condicao ? condicao->next : nullptr;
+    ASTNode *corpo = atualizacao ? atualizacao->next : nullptr;
 
     if (inicializacao) {
       ASTNode *proximo = inicializacao->next;
@@ -350,6 +351,12 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
     if (obter_tipo_no(condicao) != TipoDado::INT) {
       throw std::runtime_error("Erro Semântico: A condição do comando de "
                                "controle precisa ser do tipo 'int'.");
+    }
+    if (atualizacao) {
+      ASTNode *proximo = atualizacao->next;
+      atualizacao->next = nullptr;
+      analisar_no(atualizacao);
+      atualizacao->next = proximo;
     }
     if (corpo)
       analisar_no(corpo);

@@ -1,7 +1,7 @@
 # Nir
 
 Nir é uma linguagem procedural compilada para o assembly da máquina virtual
-SaM 2.6. O compilador foi desenvolvido manualmente em C++ para a disciplina de
+SaM 2.6. O compilador foi desenvolvido em C++ para a disciplina de
 Compiladores, sem geradores de analisadores léxicos ou sintáticos.
 
 O projeto implementa:
@@ -12,7 +12,6 @@ O projeto implementa:
 - `if`, `else`, `while`, `do while` e `for`;
 - funções, parâmetros, retornos e recursão;
 - `break` e `continue`;
-- imports de outros arquivos `.nir`;
 - promoção implícita de `int` para `float`;
 - geração de código SaM 2.6.
 
@@ -55,7 +54,7 @@ O executável será criado em `build/nir`.
 O compilador aceita apenas arquivos com extensão `.nir`:
 
 ```bash
-./build/nir examples/validos/15_completo.nir
+./build/nir exemplos/validos/15_completo.nir
 ```
 
 Quando a compilação termina com sucesso, o arquivo `saida.sam` é criado no
@@ -65,28 +64,13 @@ diretório atual:
 Código SaM v2.6 gerado em: saida.sam
 ```
 
-Erros léxicos, sintáticos, semânticos, de import ou de acesso a arquivos
+Erros léxicos, sintáticos, semânticos ou de acesso a arquivos
 encerram o compilador com código de saída diferente de zero.
 
-## Testes
-
-A suíte usa os programas em `examples/validos` e `examples/erros`. Além da
-compilação, ela executa o assembly, compara a saída esperada, verifica a pilha
-final e procura alocações restantes no heap da SaM.
-
-Requisitos adicionais:
-
-- Python 3;
-- Java/JDK;
-- `SaM-2.6.3.jar`.
-
-O JAR pode estar na raiz do projeto, em `tools/`, ser indicado por `SAM_JAR` ou
-pela opção `--sam-jar`.
+## Executando os exemplos
 
 ```bash
-python3 scripts/test_examples.py
-python3 scripts/test_examples.py --show-output
-ctest --test-dir build --output-on-failure
+cmake --build build --target exemplos
 ```
 
 ## Documentação
@@ -95,7 +79,7 @@ ctest --test-dir build --output-on-failure
 - [Arquitetura do compilador](docs/arquitetura.md)
 - [Atendimento aos requisitos](docs/requisitos.md)
 - [Gramática formal](gramatica/gramatica.txt)
-- [Catálogo de exemplos](examples/README.md)
+- [Catálogo de exemplos](exemplos/README.md)
 
 ## Estrutura
 
@@ -103,7 +87,7 @@ ctest --test-dir build --output-on-failure
 include/       interfaces dos componentes
 src/           implementação do compilador
 gramatica/     gramática da linguagem
-examples/      programas válidos, inválidos e módulos
+exemplos/      programas válidos, inválidos e módulos
 scripts/       automação dos testes
 docs/          documentação técnica
 main.cpp       fluxo principal de compilação

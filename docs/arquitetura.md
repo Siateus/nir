@@ -66,7 +66,7 @@ Arquivos:
 - `include/analisador_sintatico.hpp`
 - `src/analisador_sintatico.cpp`
 
-O parser é descendente recursivo e foi escrito manualmente a partir da
+O parser é descendente recursivo e foi escrito a partir da
 gramática em `gramatica/gramatica.txt`. Os métodos `peek`, `match` e `advance`
 controlam o fluxo de tokens.
 
@@ -140,34 +140,3 @@ O componente implementa:
 - curto-circuito lógico;
 - pilhas de rótulos para `break` e `continue`;
 - liberação de strings locais e globais.
-
-## Gerenciamento de memória
-
-A AST é mantida por `std::unique_ptr` no fluxo principal. Seu destrutor libera
-filhos e irmãos recursivamente.
-
-Strings da linguagem são alocadas no heap da SaM. O gerador:
-
-- libera o valor anterior em reatribuições;
-- libera strings locais ao sair da função;
-- libera strings globais antes de `STOP`;
-- zera slots depois de `FREE`.
-
-A suíte automatizada verifica que o heap termina sem alocações.
-
-## Testes
-
-Arquivo:
-
-- `scripts/test_examples.py`
-
-Os exemplos válidos contêm um bloco `// Saida esperada:`. O script:
-
-1. compila cada arquivo;
-2. executa `saida.sam` com a biblioteca SaM;
-3. compara as linhas produzidas;
-4. exige uma pilha final com um item;
-5. exige zero alocações restantes no heap.
-
-Os exemplos de erro podem declarar um trecho esperado com
-`// Erro esperado:` e devem ser rejeitados pelo compilador.

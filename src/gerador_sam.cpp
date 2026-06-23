@@ -532,9 +532,11 @@ void GeradorSAM::traduzir_comando(ASTNode *no, bool traduzir_proximos) {
   case NodeType::FOR: {
     ASTNode *inicializacao = no->leftmostChild;
     ASTNode *condicao = inicializacao ? inicializacao->next : nullptr;
-    ASTNode *corpo = condicao ? condicao->next : nullptr;
+    ASTNode *atualizacao = condicao ? condicao->next : nullptr;
+    ASTNode *corpo = atualizacao ? atualizacao->next : nullptr;
     std::string rotulo_inicio = novo_rotulo();
     std::string rotulo_corpo = novo_rotulo();
+    std::string rotulo_atualizacao = novo_rotulo();
     std::string rotulo_fim = novo_rotulo();
 
     auto tabela_antes_do_para = tabela_deslocamentos;
@@ -545,10 +547,12 @@ void GeradorSAM::traduzir_comando(ASTNode *no, bool traduzir_proximos) {
     codigo_sam.push_back("JUMP " + rotulo_fim);
     codigo_sam.push_back(rotulo_corpo + ":");
     rotulos_interrupcao.push_back(rotulo_fim);
-    rotulos_continuacao.push_back(rotulo_inicio);
+    rotulos_continuacao.push_back(rotulo_atualizacao);
     traduzir_comando(corpo, false);
     rotulos_continuacao.pop_back();
     rotulos_interrupcao.pop_back();
+    codigo_sam.push_back(rotulo_atualizacao + ":");
+    traduzir_comando(atualizacao, false);
     codigo_sam.push_back("JUMP " + rotulo_inicio);
     codigo_sam.push_back(rotulo_fim + ":");
     tabela_deslocamentos = std::move(tabela_antes_do_para);

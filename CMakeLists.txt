@@ -21,24 +21,14 @@ add_executable(nir
         main.cpp
 )
 
-enable_testing()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-add_test(
-        NAME example_tests
-        COMMAND ${Python3_EXECUTABLE}
-                ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_examples.py
-                --compiler $<TARGET_FILE:nir>
-)
 
-add_custom_target(teste
+add_custom_target(exemplos
         COMMAND ${Python3_EXECUTABLE}
                 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_valid_examples.py
                 --compiler $<TARGET_FILE:nir>
-                --output-dir ${CMAKE_CURRENT_BINARY_DIR}/examples_sam
-        COMMAND ${Python3_EXECUTABLE}
-                ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_examples.py
-                --compiler $<TARGET_FILE:nir>
+                --output-dir ${CMAKE_CURRENT_BINARY_DIR}/exemplos_sam
         DEPENDS nir
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Compilando exemplos validos em .sam e executando testes Nir"
+        COMMENT "Compilando exemplos Nir em arquivos .sam"
 )

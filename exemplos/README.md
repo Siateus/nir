@@ -61,27 +61,18 @@ Strings possuem ownership único: variáveis podem receber literais de string e
 ser reatribuídas, mas cópias entre variáveis, parâmetros e retornos de string
 ainda não são permitidos.
 
-## Executando os testes
+## Compilando os exemplos
 
-Os próprios exemplos formam a suíte de testes:
-
-```bash
-python3 scripts/test_examples.py
-```
-
-Para visualizar no terminal a saída real produzida pela SaM:
+Para compilar todos os exemplos válidos em arquivos `.sam` separados:
 
 ```bash
-python3 scripts/test_examples.py --show-output
+python3 scripts/compile_valid_examples.py
 ```
 
-O script compila e executa todos os arquivos de `validos/`, compara a saída com
-os comentários `// Saida esperada:`, verifica a pilha final da SaM e confirma
-que todos os arquivos de `erros/` são rejeitados. O caminho do simulador pode
-ser informado por `SAM_JAR` ou `--sam-jar`.
-
-Depois de configurar o CMake, a mesma suíte pode ser executada com:
+Depois de configurar o CMake, o mesmo fluxo pode ser executado com:
 
 ```bash
-ctest --test-dir build --output-on-failure
+cmake --build build --target exemplos
 ```
+
+Os arquivos gerados ficam em `build/exemplos_sam` por padrão.

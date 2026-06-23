@@ -32,9 +32,8 @@ fun main(): void {
         atual = atual + 1;
     } while (atual <= 5);
 
-    for (var i: int = 1; i <= 3) {
+    for (var i: int = 1; i <= 3; i = i + 1) {
         print(potencia(i, 2));
-        i = i + 1;
     }
 
     print("total:");

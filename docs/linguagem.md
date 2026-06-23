@@ -159,13 +159,11 @@ do {
 
 ### For
 
-O `for` de Nir possui declaração de inicialização e condição. A atualização deve
-ser escrita no corpo:
+O `for` de Nir possui declaração de inicialização, condição e atualização:
 
 ```nir
-for (var i: int = 0; i < 5) {
+for (var i: int = 0; i < 5; i = i + 1) {
     print(i);
-    i = i + 1;
 }
 ```
 
