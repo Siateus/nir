@@ -33,7 +33,7 @@ ExpressaoOu -> ExpressaoE CaudaExpressaoOu
 CaudaExpressaoOu -> '||' ExpressaoE CaudaExpressaoOu | ε
 ExpressaoE -> ExpLogicaUnaria CaudaExpressaoE
 CaudaExpressaoE -> '&&' ExpLogicaUnaria CaudaExpressaoE | ε
-ExpLogicaUnaria -> '!' ExpLogicaUnaria | '(' Condicao ')' | ExpressaoRelacional
+ExpLogicaUnaria -> '!' ExpLogicaUnaria | ExpressaoRelacional
 
 ExpressaoRelacional -> ExpressaoAritmetica CaudaRelacional
 CaudaRelacional -> '==' ExpressaoAritmetica | '!=' ExpressaoAritmetica 
@@ -58,9 +58,4 @@ ComandoWhile -> 'while' '(' Condicao ')' Bloco
 ComandoDoWhile -> 'do' Bloco 'while' '(' Condicao ')' ';'
 ComandoFor -> 'for' '(' DeclaraVariavel Condicao ';' 'id' '=' Condicao ')' Bloco
 
-# Regras semanticas:
-# - int e promovido implicitamente para float quando necessario.
-# - float nao e convertido implicitamente para int.
-# - string possui ownership unico: aceita literais, mas nao copia entre
-#   variaveis nem participa de parametros ou retornos.
-# - todo programa deve possuir exatamente uma entrada 'fun main(): void'.
+
