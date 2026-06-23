@@ -1,0 +1,53 @@
+fun main(): void {
+    var i: int = 0;
+
+    while (i < 6) {
+        i = i + 1;
+
+        if (i == 2) {
+            continue;
+        }
+        if (i == 5) {
+            break;
+        }
+
+        print(i);
+    }
+
+    var d: int = 0;
+    do {
+        d = d + 1;
+        if (d < 3) {
+            continue;
+        }
+        print(d);
+        break;
+    } while (d < 5);
+
+    for (var linha: int = 1; linha <= 3) {
+        var coluna: int = 0;
+
+        while (coluna < 3) {
+            coluna = coluna + 1;
+            if (coluna == 2) {
+                continue;
+            }
+            if (linha == 3) {
+                break;
+            }
+            print(linha * 10 + coluna);
+        }
+
+        linha = linha + 1;
+    }
+}
+
+// Saida esperada:
+// 1
+// 3
+// 4
+// 3
+// 11
+// 13
+// 21
+// 23

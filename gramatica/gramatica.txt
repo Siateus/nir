@@ -15,15 +15,18 @@ Bloco -> '{' ListaComandos '}'
 ListaComandos -> Comando ListaComandos | ε
 Comando -> ComandoSimples | ComandoComposto
 
-ComandoSimples -> DeclaraVariavel | ComandoRetorno | ComandoPrint | 'id' CaudaComandoId
-CaudaComandoId -> '=' ExpressaoAritmetica ';' | '(' ListaArgumentos ')' ';'
+ComandoSimples -> DeclaraVariavel | ComandoRetorno | ComandoPrint
+                  | ComandoBreak | ComandoContinue | 'id' CaudaComandoId
+CaudaComandoId -> '=' Condicao ';' | '(' ListaArgumentos ')' ';'
 
 ComandoComposto -> ComandoWhile | ComandoIf | ComandoDoWhile | ComandoFor
 
 DeclaraVariavel -> 'var' 'id' ':' Tipo Inicializacao ';'
-Inicializacao -> '=' ExpressaoAritmetica | ε
-ComandoRetorno -> 'return' ExpressaoAritmetica ';'
-ComandoPrint -> 'print' '(' ExpressaoAritmetica ')' ';'
+Inicializacao -> '=' Condicao | ε
+ComandoRetorno -> 'return' Condicao ';'
+ComandoPrint -> 'print' '(' Condicao ')' ';'
+ComandoBreak -> 'break' ';'
+ComandoContinue -> 'continue' ';'
 Tipo -> 'int' | 'float' | 'char' | 'void' | 'string'
 
 Condicao -> ExpressaoOu
@@ -43,9 +46,10 @@ CaudaExpressaoAritmetica -> '+' Termo CaudaExpressaoAritmetica | '-' Termo Cauda
 Termo -> Fator CaudaTermo
 CaudaTermo -> '*' Fator CaudaTermo | '/' Fator CaudaTermo | '%' Fator CaudaTermo | ε
 Fator -> 'id' CaudaFator | 'NUMBER' | 'CHAR' | 'STRING'
+         | '-' Fator | '(' Condicao ')'
 CaudaFator -> '(' ListaArgumentos ')' | ε
-ListaArgumentos -> ExpressaoAritmetica CaudaArgumentos | ε
-CaudaArgumentos -> ',' ExpressaoAritmetica CaudaArgumentos | ε
+ListaArgumentos -> Condicao CaudaArgumentos | ε
+CaudaArgumentos -> ',' Condicao CaudaArgumentos | ε
 
 ComandoIf -> 'if' '(' Condicao ')' Bloco ComandoElse
 ComandoElse -> 'else' CaudaElse | ε
@@ -60,3 +64,6 @@ ComandoFor -> 'for' '(' DeclaraVariavel Condicao ')' Bloco
 #   arquivo importador.
 # - int e promovido implicitamente para float quando necessario.
 # - float nao e convertido implicitamente para int.
+# - string possui ownership unico: aceita literais, mas nao copia entre
+#   variaveis nem participa de parametros ou retornos.
+# - todo programa deve possuir exatamente uma entrada 'fun main(): void'.

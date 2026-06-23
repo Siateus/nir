@@ -1,0 +1,75 @@
+var contador: int = 0;
+var efeitos: int = 0;
+var letraGlobal: char = 'G';
+var textoGlobal: string = "global";
+
+fun main(): void {
+    incrementar();
+    print(contador);
+
+    var parenteses: int = (2 + 3) * 4;
+    var relacional: int = 2 < 3;
+    print(parenteses);
+    print(relacional);
+
+    if (0 && tocar()) {
+        print(999);
+    }
+    print(efeitos);
+
+    if (-1 || 0) {
+        print("negativo tambem e verdadeiro");
+    }
+
+    print(letraGlobal);
+    print(textoGlobal);
+    textoGlobal = "global alterada";
+    print(textoGlobal);
+    print(obterLetra());
+
+    if (0) {
+        var nuncaCriada: string = "nao alocada";
+    }
+
+    var texto: string;
+    texto = "primeiro";
+    print(texto);
+    texto = "segundo";
+    print(texto);
+
+    var i: int = 0;
+    while (i < 3) {
+        var repetida: string = "loop";
+        print(repetida);
+        i = i + 1;
+    }
+}
+
+fun incrementar(): void {
+    contador = contador + 1;
+}
+
+fun tocar(): int {
+    efeitos = efeitos + 1;
+    return 1;
+}
+
+fun obterLetra(): char {
+    return 'R';
+}
+
+// Saida esperada:
+// 1
+// 20
+// 1
+// 0
+// negativo tambem e verdadeiro
+// G
+// global
+// global alterada
+// R
+// primeiro
+// segundo
+// loop
+// loop
+// loop

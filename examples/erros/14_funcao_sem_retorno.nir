@@ -1,0 +1,9 @@
+fun calcular(): int {
+    var valor: int = 10;
+}
+
+fun main(): void {
+    print(calcular());
+}
+
+// Erro esperado: pode terminar sem retornar

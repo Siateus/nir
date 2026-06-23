@@ -1,0 +1,9 @@
+fun escolher(valor: int, valor: int): int {
+    return valor;
+}
+
+fun main(): void {
+    print(escolher(1, 2));
+}
+
+// Erro esperado: Parametro 'valor' repetido

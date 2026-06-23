@@ -1,5 +1,5 @@
 fun main(): void {
-    var soma: int = 10 + 5;
+    var soma: int = 10 + 6;
     var subtracao: int = 10 - 5;
     var produto: int = 3 * 4;
     var divisao: int = 20 / 4;
@@ -19,7 +19,7 @@ fun main(): void {
 }
 
 // Saida esperada:
-// 15
+// 16
 // 5
 // 12
 // 5

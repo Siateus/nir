@@ -1,0 +1,5 @@
+fun main(): void {
+    var valor: int = 1 @ + 2;
+}
+
+// Erro esperado: caractere inválido

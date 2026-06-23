@@ -1,0 +1,5 @@
+fun main(): void {
+    var impossivel: void;
+}
+
+// Erro esperado: não pode possuir tipo 'void'

@@ -21,6 +21,8 @@ enum class NodeType {
   IF,
   PRINT,
   RETURN,
+  BREAK,
+  CONTINUE,
   CALL,
   BIN_OP,
   UN_OP,
@@ -63,6 +65,10 @@ private:
       return "PRINT";
     case NodeType::RETURN:
       return "RETURN";
+    case NodeType::BREAK:
+      return "BREAK";
+    case NodeType::CONTINUE:
+      return "CONTINUE";
     case NodeType::CALL:
       return "CALL";
     case NodeType::BIN_OP:
@@ -96,6 +102,10 @@ public:
   ASTNode *next = nullptr;
 
   ASTNode(NodeType t, const std::string &val = "") : type(t), value(val) {}
+  ~ASTNode() {
+    delete leftmostChild;
+    delete next;
+  }
 
   ASTNode *make_siblings(ASTNode *y) {
     if (!y) {

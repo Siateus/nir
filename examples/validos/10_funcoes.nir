@@ -3,8 +3,7 @@ fun somar(a: int, b: int): int {
 }
 
 fun media(a: float, b: float): float {
-    var soma: float = a + b;
-    return soma / 2.0;
+    return (a+b) / 2.0;
 }
 
 fun escolherMaior(a: int, b: int): int {

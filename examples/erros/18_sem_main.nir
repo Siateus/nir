@@ -1,0 +1,5 @@
+fun auxiliar(): int {
+    return 1;
+}
+
+// Erro esperado: precisa declarar a função 'fun main(): void'

@@ -1,0 +1,6 @@
+fun main(): void {
+    var origem: string = "texto";
+    var copia: string = origem;
+}
+
+// Erro esperado: Strings só podem receber literais

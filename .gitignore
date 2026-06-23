@@ -16,7 +16,7 @@
 
 # Debugger Files
 *.pdb
-
+.idea
 # Compiled Dynamic libraries
 *.so
 *.dylib
@@ -60,6 +60,8 @@ cmake-*/
 *.log
 *.bak
 *.swp
+*.pyc
+__pycache__/
 
 # vcpkg
 vcpkg_installed/

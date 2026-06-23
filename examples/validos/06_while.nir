@@ -9,6 +9,7 @@ fun main(): void {
 
     print("soma de 1 ate 5:");
     print(soma);
+
 }
 
 // Saida esperada:
