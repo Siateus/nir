@@ -61,15 +61,15 @@ def main():
                 + resultado.stdout
                 + resultado.stderr
             )
-            print(f"FAIL sam     {fonte.name}")
+            print(f"{fonte.name}")
             continue
 
         if not arquivo_saida.is_file():
             falhas.append(f"{fonte.name}: {arquivo_saida} nao foi gerado")
-            print(f"FAIL sam     {fonte.name}")
+            print(f"{fonte.name}")
             continue
 
-        print(f"PASS sam     {fonte.name} -> {arquivo_saida.relative_to(RAIZ_PROJETO)}")
+        print(f"{fonte.name} -> {arquivo_saida.relative_to(RAIZ_PROJETO)}")
 
     print()
     quantidade_sam = len(list(diretorio_saida.glob("*.sam")))
