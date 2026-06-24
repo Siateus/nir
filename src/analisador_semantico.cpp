@@ -74,6 +74,53 @@ AnalisadorSematico::AnalisadorSematico() {
 
 AnalisadorSematico::~AnalisadorSematico() { delete escopo_global; }
 
+AnalisadorSematico::EstadoInicializacao
+AnalisadorSematico::capturar_estado_inicializacao() const {
+  EstadoInicializacao estado;
+  escopo_global->coletar_estado_inicializacao(estado);
+  return estado;
+}
+
+void AnalisadorSematico::restaurar_estado_inicializacao(
+    const EstadoInicializacao &estado) {
+  escopo_global->aplicar_estado_inicializacao(estado);
+}
+
+void AnalisadorSematico::intersectar_estado_inicializacao(
+    const EstadoInicializacao &base, const EstadoInicializacao &primeiro,
+    const EstadoInicializacao &segundo) {
+  EstadoInicializacao resultado = base;
+
+  for (const auto &entrada : base) {
+    const Simbolo *simbolo = entrada.first;
+    bool inicializado_base = entrada.second;
+
+    bool inicializado_primeiro = inicializado_base;
+    auto encontrado_primeiro = primeiro.find(simbolo);
+    if (encontrado_primeiro != primeiro.end())
+      inicializado_primeiro = encontrado_primeiro->second;
+
+    bool inicializado_segundo = inicializado_base;
+    auto encontrado_segundo = segundo.find(simbolo);
+    if (encontrado_segundo != segundo.end())
+      inicializado_segundo = encontrado_segundo->second;
+
+    resultado[simbolo] = inicializado_primeiro && inicializado_segundo;
+  }
+
+  restaurar_estado_inicializacao(resultado);
+}
+
+void AnalisadorSematico::analisar_no_isolado(ASTNode *no) {
+  if (!no)
+    return;
+
+  ASTNode *proximo = no->next;
+  no->next = nullptr;
+  analisar_no(no);
+  no->next = proximo;
+}
+
 void AnalisadorSematico::registrar_simbolos_globais(ASTNode *raiz) {
   ASTNode *nivel = raiz && raiz->type == NodeType::PROG ? raiz->leftmostChild
                                                         : raiz;
@@ -86,7 +133,7 @@ void AnalisadorSematico::registrar_simbolos_globais(ASTNode *raiz) {
                                  "' não pode possuir tipo 'void'.");
       }
       auto simbolo = std::make_shared<Simbolo>(
-          Simbolo{atual->value, tipo, false, {}});
+          Simbolo{atual->value, tipo, false, false, {}});
       if (!escopo_atual->definir(simbolo)) {
         throw std::runtime_error("Erro Semântico: Identificador global '" +
                                  atual->value + "' já declarado.");
@@ -118,7 +165,7 @@ void AnalisadorSematico::registrar_simbolos_globais(ASTNode *raiz) {
     }
 
     auto simbolo = std::make_shared<Simbolo>(
-        Simbolo{atual->value, retorno, true, parametros});
+        Simbolo{atual->value, retorno, true, true, parametros});
     if (!escopo_atual->definir(simbolo)) {
       throw std::runtime_error("Erro Semântico: Identificador global '" +
                                atual->value + "' já declarado.");
@@ -178,7 +225,8 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
     bool e_global = no->parent && no->parent->type == NodeType::PROG;
     if (!e_global) {
       auto simbolo_variavel =
-          std::make_shared<Simbolo>(Simbolo{nome_variavel, tipo_variavel, false, {}});
+          std::make_shared<Simbolo>(Simbolo{nome_variavel, tipo_variavel, false,
+                                            no_tipo->next != nullptr, {}});
       if (!escopo_atual->definir(simbolo_variavel)) {
         throw std::runtime_error("Erro Semântico: Variavel '" + nome_variavel +
                                  "' ja declarada neste escopo.");
@@ -198,6 +246,12 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
             nome_variavel + "'. Esperado: " + converter_tipo_para_texto(tipo_variavel) +
             ", mas obteve: " + converter_tipo_para_texto(tipo_init));
       }
+    }
+
+    if (e_global) {
+      auto simbolo_global = escopo_atual->resolver(nome_variavel);
+      if (simbolo_global)
+        simbolo_global->inicializado = (no_tipo->next != nullptr);
     }
     break;
   }
@@ -222,7 +276,7 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
       if (tipo_parametro) {
         TipoDado tipo_parametro_dado = converter_texto_para_tipo(tipo_parametro->value);
         auto simbolo_parametro = std::make_shared<Simbolo>(Simbolo{
-            nome_parametro, tipo_parametro_dado, false, {}});
+            nome_parametro, tipo_parametro_dado, false, true, {}});
         if (!escopo_atual->definir(simbolo_parametro)) {
           throw std::runtime_error("Erro Semântico: Parametro '" + nome_parametro +
                                    "' repetido na função '" + nome_funcao + "'.");
@@ -273,6 +327,7 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
                                "'. Esperado: " + converter_tipo_para_texto(simbolo_resolvido->tipo) +
                                ", mas obteve: " + converter_tipo_para_texto(tipo_expressao));
     }
+    simbolo_resolvido->inicializado = true;
     break;
   }
 
@@ -315,22 +370,51 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
                                "controle precisa ser do tipo 'int'.");
     }
 
-    if (no->leftmostChild->next) {
-      analisar_no(no->leftmostChild->next);
+    EstadoInicializacao estado_antes = capturar_estado_inicializacao();
+
+    if (no->type == NodeType::IF) {
+      ASTNode *bloco_entao = no->leftmostChild ? no->leftmostChild->next : nullptr;
+      ASTNode *bloco_senao = bloco_entao ? bloco_entao->next : nullptr;
+
+      if (bloco_entao) {
+        analisar_no_isolado(bloco_entao);
+      }
+      EstadoInicializacao estado_entao = capturar_estado_inicializacao();
+      restaurar_estado_inicializacao(estado_antes);
+
+      if (bloco_senao && bloco_senao->type != NodeType::EMPTY) {
+        analisar_no_isolado(bloco_senao);
+        EstadoInicializacao estado_senao = capturar_estado_inicializacao();
+        intersectar_estado_inicializacao(estado_antes, estado_entao,
+                                         estado_senao);
+      } else {
+        restaurar_estado_inicializacao(estado_antes);
+      }
+    } else {
+      ASTNode *corpo = no->leftmostChild ? no->leftmostChild->next : nullptr;
+      if (corpo) {
+        analisar_no_isolado(corpo);
+      }
+      restaurar_estado_inicializacao(estado_antes);
     }
-    break;
+
+    if (no->next)
+      analisar_no(no->next);
+    return;
   }
 
   case NodeType::DO_WHILE: {
     ASTNode *corpo = no->leftmostChild;
     ASTNode *condicao = corpo ? corpo->next : nullptr;
+    if (corpo)
+      analisar_no_isolado(corpo);
     if (obter_tipo_no(condicao) != TipoDado::INT) {
       throw std::runtime_error("Erro Semântico: A condição do comando de "
                                "controle precisa ser do tipo 'int'.");
     }
-    if (corpo)
-      analisar_no(corpo);
-    break;
+    if (no->next)
+      analisar_no(no->next);
+    return;
   }
 
   case NodeType::FOR: {
@@ -352,14 +436,17 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
       throw std::runtime_error("Erro Semântico: A condição do comando de "
                                "controle precisa ser do tipo 'int'.");
     }
+    EstadoInicializacao estado_apos_inicializacao =
+        capturar_estado_inicializacao();
+    if (corpo)
+      analisar_no_isolado(corpo);
     if (atualizacao) {
       ASTNode *proximo = atualizacao->next;
       atualizacao->next = nullptr;
       analisar_no(atualizacao);
       atualizacao->next = proximo;
     }
-    if (corpo)
-      analisar_no(corpo);
+    restaurar_estado_inicializacao(estado_apos_inicializacao);
 
     escopo_atual = escopo_pai;
     if (no->next)
@@ -397,6 +484,10 @@ void AnalisadorSematico::analisar_no(ASTNode *no) {
     if (!simbolo_resolvido) {
       throw std::runtime_error("Erro Semântico: Identificador '" + no->value +
                                "' nao declarado neste escopo.");
+    }
+    if (!simbolo_resolvido->e_funcao && !simbolo_resolvido->inicializado) {
+      throw std::runtime_error("Erro Semântico: Variavel '" + no->value +
+                               "' usada antes de ser inicializada.");
     }
     break;
   }
@@ -449,8 +540,13 @@ TipoDado AnalisadorSematico::obter_tipo_no(ASTNode *no) {
 
   case NodeType::ID: {
     auto simbolo_resolvido = escopo_atual->resolver(no->value);
-    if (simbolo_resolvido)
+    if (simbolo_resolvido) {
+      if (!simbolo_resolvido->e_funcao && !simbolo_resolvido->inicializado) {
+        throw std::runtime_error("Erro Semântico: Variavel '" + no->value +
+                                 "' usada antes de ser inicializada.");
+      }
       return marcar_tipo(simbolo_resolvido->tipo);
+    }
     throw std::runtime_error("Erro Semântico: Variavel '" + no->value +
                              "' nao declarada neste escopo.");
   }

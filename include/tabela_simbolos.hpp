@@ -12,6 +12,7 @@ struct Simbolo {
   std::string nome;
   TipoDado tipo;
   bool e_funcao;
+  bool inicializado;
   std::vector<TipoDado> tipos_parametros;
 };
 
@@ -48,6 +49,25 @@ public:
       return pai->resolver(nome);
     }
     return nullptr;
+  }
+
+  void coletar_estado_inicializacao(
+      std::unordered_map<const Simbolo *, bool> &estado) const {
+    for (const auto &entrada : simbolos)
+      estado[entrada.second.get()] = entrada.second->inicializado;
+    for (const Escopo *filho : filhos)
+      filho->coletar_estado_inicializacao(estado);
+  }
+
+  void aplicar_estado_inicializacao(
+      const std::unordered_map<const Simbolo *, bool> &estado) {
+    for (const auto &entrada : simbolos) {
+      auto encontrado = estado.find(entrada.second.get());
+      if (encontrado != estado.end())
+        entrada.second->inicializado = encontrado->second;
+    }
+    for (Escopo *filho : filhos)
+      filho->aplicar_estado_inicializacao(estado);
   }
 
   Escopo *obter_pai() const { return pai; }
